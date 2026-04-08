@@ -1,0 +1,23 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Generated output
+output/
+*.ddp.bak
+
+# Large DITA library binaries (keep source, exclude grammars zip/pdf)
+*.pdf
+src/main/resources/dita-v1.3-os-part3-all-inclusive-grammars/
+src/main/resources/dita-v1.3-os-part3-all-inclusive-html/

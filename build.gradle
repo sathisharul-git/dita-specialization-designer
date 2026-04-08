@@ -1,0 +1,319 @@
+// =============================================================================
+//  DITA Specialization Designer — build.gradle
+//  Java 17 · JavaFX 21 · Gradle 8.x
+// =============================================================================
+
+plugins {
+    id 'java'
+    id 'application'
+    id 'jacoco'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+// ── Coordinates ──────────────────────────────────────────────────────────────
+group   = 'com.ditadesigner'
+version = '1.0.0'
+
+// Timestamp used in manifest and artefact names
+ext.buildTimestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC'))
+
+// ── Java toolchain ────────────────────────────────────────────────────────────
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withJavadocJar()
+    withSourcesJar()
+}
+
+// ── Repositories ──────────────────────────────────────────────────────────────
+repositories {
+    mavenCentral()
+}
+
+// ── JavaFX ────────────────────────────────────────────────────────────────────
+javafx {
+    version = '21'
+    modules = [
+        'javafx.controls',
+        'javafx.fxml',
+        'javafx.graphics',
+        'javafx.base'
+    ]
+}
+
+// ── Dependencies ──────────────────────────────────────────────────────────────
+dependencies {
+    // JSON serialization
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.15.2'
+
+    // XML parsing / validation
+    implementation 'xerces:xercesImpl:2.12.2'
+
+    // File utilities
+    implementation 'commons-io:commons-io:2.13.0'
+    implementation 'org.apache.commons:commons-lang3:3.13.0'
+
+    // Testing
+    testImplementation platform('org.junit:junit-bom:5.9.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly    'org.junit.platform:junit-platform-launcher'
+}
+
+// ── Compile settings ──────────────────────────────────────────────────────────
+tasks.withType(JavaCompile).configureEach {
+    options.encoding    = 'UTF-8'
+    options.deprecation = true
+    options.compilerArgs << '-parameters'
+}
+
+// ── Application (run + distribution) ─────────────────────────────────────────
+application {
+    mainClass = 'com.ditadesigner.App'
+    applicationDefaultJvmArgs = [
+        '-Xms256m', '-Xmx512m',
+        '--add-opens', 'javafx.graphics/javafx.scene=ALL-UNNAMED',
+        '--add-opens', 'javafx.controls/javafx.scene.control=ALL-UNNAMED',
+        '-Dfile.encoding=UTF-8'
+    ]
+}
+
+// ── Jar (thin, with manifest classpath) ──────────────────────────────────────
+jar {
+    archiveBaseName = rootProject.name
+    manifest {
+        attributes(
+            'Main-Class'             : application.mainClass.get(),
+            'Implementation-Title'   : 'DITA Specialization Designer',
+            'Implementation-Version' : version,
+            'Implementation-Vendor'  : 'ditadesigner',
+            'Build-Timestamp'        : buildTimestamp,
+            'Class-Path'             : configurations.runtimeClasspath
+                                           .collect { it.name }.join(' ')
+        )
+    }
+}
+
+// ── Shadow JAR (fat / uber JAR, all-in-one) ───────────────────────────────────
+shadowJar {
+    archiveBaseName     = rootProject.name
+    archiveClassifier   = 'all'
+    archiveVersion      = version
+
+    mergeServiceFiles()
+
+    manifest {
+        inheritFrom project.tasks.jar.manifest
+    }
+
+    // Strip code-signing metadata that breaks merged JARs
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+    exclude 'META-INF/LICENSE*'
+    exclude 'META-INF/NOTICE*'
+    exclude 'module-info.class'
+}
+
+// ── Distribution (installDist / distZip / distTar) ───────────────────────────
+distributions {
+    main {
+        distributionBaseName = rootProject.name
+        contents {
+            // Include the README in the distribution root
+            from('README.md')
+            // Include sample output so users can inspect generated artefacts
+            from('docs') {
+                into 'docs'
+                duplicatesStrategy = DuplicatesStrategy.INCLUDE
+            }
+        }
+    }
+}
+
+// Ensure JVM args are written into the generated start scripts
+startScripts {
+    // Append the required JavaFX opens/exports to the generated OS scripts
+    doLast {
+        def jvmArgs = application.applicationDefaultJvmArgs.join(' ')
+        // Unix script
+        unixScript.text = unixScript.text.replace(
+            'DEFAULT_JVM_OPTS=""',
+            'DEFAULT_JVM_OPTS="' + jvmArgs + '"'
+        )
+        // Windows BAT script
+        windowsScript.text = windowsScript.text.replace(
+            'set DEFAULT_JVM_OPTS=',
+            'set DEFAULT_JVM_OPTS=' + jvmArgs
+        )
+    }
+}
+
+// ── Test configuration ────────────────────────────────────────────────────────
+test {
+    useJUnitPlatform()
+
+    // Memory for test JVM
+    maxHeapSize = '512m'
+
+    testLogging {
+        events          'passed', 'skipped', 'failed'
+        showCauses      = true
+        showExceptions  = true
+        showStackTraces = true
+        exceptionFormat = 'full'
+    }
+
+    reports {
+        html.required     = true
+        junitXml.required = true
+    }
+
+    // Collect coverage after every test run
+    finalizedBy jacocoTestReport
+
+    doLast {
+        def report = reports.html.outputLocation.asFile.get()
+        println "\n  Test report  : file:///${report.absolutePath.replace('\\', '/')}/index.html"
+    }
+}
+
+// ── JaCoCo coverage ───────────────────────────────────────────────────────────
+jacoco {
+    toolVersion = '0.8.11'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required  = true
+        html.required = true
+        csv.required  = false
+    }
+    doLast {
+        def report = reports.html.outputLocation.asFile.get()
+        println "  Coverage     : file:///${report.absolutePath.replace('\\', '/')}/index.html"
+    }
+}
+
+// Optional: fail build if coverage drops below threshold
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.50   // 50 % line coverage minimum
+            }
+        }
+    }
+}
+
+// ── Javadoc ───────────────────────────────────────────────────────────────────
+javadoc {
+    options.encoding     = 'UTF-8'
+    options.charSet      = 'UTF-8'
+    options.author       = true
+    options.version      = true
+    options.windowTitle  = "DITA Specialization Designer ${version}"
+    options.docTitle     = "DITA Specialization Designer ${version} API"
+    options.addStringOption('Xdoclint:none', '-quiet')
+    failOnError = false
+}
+
+// ── Custom lifecycle tasks ────────────────────────────────────────────────────
+
+/**
+ * ci — mirrors a CI pipeline: clean → compile → test → package
+ * Usage: gradlew ci
+ */
+tasks.register('ci') {
+    group       = 'build'
+    description = 'Full CI pipeline: clean → compile → test → jar → shadowJar → distZip'
+
+    dependsOn 'clean', 'compileJava', 'compileTestJava',
+              'test', 'jacocoTestReport',
+              'jar', 'shadowJar', 'distZip', 'distTar', 'javadoc'
+
+    // Enforce correct execution order
+    tasks.compileJava.mustRunAfter         'clean'
+    tasks.compileTestJava.mustRunAfter     'compileJava'
+    tasks.test.mustRunAfter               'compileTestJava'
+    tasks.jacocoTestReport.mustRunAfter   'test'
+    tasks.jar.mustRunAfter                'jacocoTestReport'
+    tasks.shadowJar.mustRunAfter          'jar'
+    tasks.distZip.mustRunAfter            'shadowJar'
+    tasks.distTar.mustRunAfter            'distZip'
+    tasks.javadoc.mustRunAfter            'distTar'
+
+    doLast {
+        println """
+╔══════════════════════════════════════════════════════════════╗
+║                   CI BUILD COMPLETE                          ║
+╠══════════════════════════════════════════════════════════════╣
+║  Version   : ${version.padRight(48)}║
+║  Thin JAR  : build/libs/${rootProject.name}-${version}.jar
+║  Fat JAR   : build/libs/${rootProject.name}-${version}-all.jar
+║  Dist ZIP  : build/distributions/${rootProject.name}-${version}.zip
+║  Dist TAR  : build/distributions/${rootProject.name}-${version}.tar
+║  Javadoc   : build/docs/javadoc/index.html
+╚══════════════════════════════════════════════════════════════╝"""
+    }
+}
+
+/**
+ * deploy — installs the full distribution into <projectDir>/deploy/
+ * Usage: gradlew deploy
+ */
+tasks.register('deploy', Copy) {
+    group       = 'deployment'
+    description = 'Installs the application distribution into deploy/ directory'
+    dependsOn   'installDist'
+
+    from   layout.buildDirectory.dir("install/${rootProject.name}")
+    into   layout.projectDirectory.dir('deploy')
+
+    // Make shell scripts executable after copy (no-op on Windows)
+    doLast {
+        def binDir = layout.projectDirectory.dir('deploy/bin').asFile
+        if (binDir.exists()) {
+            binDir.listFiles().each { it.setExecutable(true) }
+        }
+        println """
+╔══════════════════════════════════════════════════════════════╗
+║                     DEPLOYED                                 ║
+╠══════════════════════════════════════════════════════════════╣
+║  Location  : ${projectDir}/deploy
+║  Launch    : deploy/bin/${rootProject.name}     (Unix)
+║              deploy\\bin\\${rootProject.name}.bat  (Windows)
+╚══════════════════════════════════════════════════════════════╝"""
+    }
+}
+
+/**
+ * package — alias for shadowJar (single self-contained JAR)
+ * Usage: gradlew package
+ */
+tasks.register('package') {
+    group       = 'build'
+    description = 'Builds self-contained fat JAR (alias for shadowJar)'
+    dependsOn   'shadowJar'
+    doLast {
+        def jar = tasks.shadowJar.archiveFile.get().asFile
+        println "\n  Fat JAR: ${jar.absolutePath}"
+        println "  Size   : ${(jar.length() / 1_048_576).round(1)} MB"
+    }
+}
+
+/**
+ * printVersion — prints the current project version
+ * Usage: gradlew printVersion
+ */
+tasks.register('printVersion') {
+    group       = 'help'
+    description = 'Prints the project version'
+    doLast { println version }
+}
+
+// ── Assemble depends on shadowJar as well ────────────────────────────────────
+assemble.dependsOn shadowJar
