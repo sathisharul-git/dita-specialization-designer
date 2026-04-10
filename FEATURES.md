@@ -22,7 +22,7 @@
 | F-010 | **As a** DITA architect **I want** to zoom the canvas in/out with Ctrl+Mouse Wheel **so that** I can work comfortably on large diagrams. | [x] |
 | F-011 | **As a** DITA architect **I want** a "Fit to Screen" button that adjusts zoom so all nodes are visible **so that** I get an instant overview. | [x] |
 | F-012 | **As a** DITA architect **I want** a subtle grid on the canvas background **so that** nodes appear aligned and the canvas has visual structure. | [x] |
-| F-013 | **As a** DITA architect **I want** to Ctrl+Click multiple nodes to select them together **so that** I can move or delete a group at once. | [ ] |
+| F-013 | **As a** DITA architect **I want** to Ctrl+Click multiple nodes to select them together **so that** I can move or delete a group at once. | [x] |
 | F-014 | **As a** DITA architect **I want** a right-click context menu on nodes (Rename, Duplicate, Delete) **so that** I have fast access to node actions. | [x] |
 | F-015 | **As a** DITA architect **I want** a right-click context menu on the empty canvas (Add Topic Type here, Add Element here) **so that** I can place nodes at a precise location. | [x] |
 | F-016 | **As a** DITA architect **I want** to double-click a node title to rename it inline **so that** renaming is fast and stays in context. | [x] |
@@ -38,8 +38,8 @@
 | ID | User Story | Status |
 |----|-----------|--------|
 | F-021 | **As a** DITA architect **I want** to undo the last action with Ctrl+Z **so that** I can recover from mistakes without reloading the project. | [x] |
-| F-022 | **As a** DITA architect **I want** to redo with Ctrl+Y **so that** I can reapply an action I undid by mistake. | [ ] |
-| F-023 | **As a** DITA architect **I want** to see a list of recent undo-able actions in Edit → Undo History **so that** I can understand what will be undone. | [ ] |
+| F-022 | **As a** DITA architect **I want** to redo with Ctrl+Y **so that** I can reapply an action I undid by mistake. | [x] |
+| F-023 | **As a** DITA architect **I want** to see a list of recent undo-able actions in Edit → Undo History **so that** I can understand what will be undone. | [x] |
 | F-024 | **As a** DITA architect **I want** the undo stack to be cleared when I open a new project **so that** I don't undo changes from a previous session. | [x] |
 | F-025 | **As a** DITA architect **I want** Undo and Redo items in the Edit menu (with keyboard shortcuts shown) **so that** the feature is discoverable. | [x] |
 
@@ -58,7 +58,7 @@
 | F-032 | **As a** DITA architect **I want** to add a textual description to a TopicType **so that** the intent of the specialization is documented in the project. | [x] |
 | F-033 | **As a** DITA architect **I want** the node header colour to change based on the base type (blue=task, green=concept, purple=reference…) **so that** I can identify types at a glance. | [x] |
 | F-034 | **As a** DITA architect **I want** to see an element-count and attribute-count badge on each node **so that** I have a quick summary without expanding the node. | [x] |
-| F-035 | **As a** DITA architect **I want** to collapse/expand a node to show or hide its element list **so that** I can reduce clutter on a large canvas. | [ ] |
+| F-035 | **As a** DITA architect **I want** to collapse/expand a node to show or hide its element list **so that** I can reduce clutter on a large canvas. | [x] |
 | F-036 | **As a** DITA architect **I want** to delete a TopicType with a confirmation dialog **so that** I don't accidentally remove work. | [x] |
 | F-037 | **As a** DITA architect **I want** to duplicate a TopicType (including its elements and attributes) **so that** I can create a variant without starting from scratch. | [x] |
 | F-038 | **As a** DITA architect **I want** to see a tooltip on a node that shows its description **so that** I get documentation context without opening the properties panel. | [x] |
@@ -79,7 +79,7 @@
 | F-046 | **As a** DITA architect **I want** to delete an element from the properties panel **so that** I can remove elements that are no longer needed. | [x] |
 | F-047 | **As a** DITA architect **I want** to reorder elements with Up/Down arrow buttons **so that** the generated content model reflects the intended order. | [x] |
 | F-048 | **As a** DITA architect **I want** to see a read-only DTD fragment preview for each element in the properties panel **so that** I can validate the output before generating files. | [x] |
-| F-049 | **As a** DITA architect **I want** a content-model builder dialog with checkboxes for common DITA inline elements **so that** I can assemble content models without memorising DTD syntax. | [ ] |
+| F-049 | **As a** DITA architect **I want** a content-model builder dialog with checkboxes for common DITA inline elements **so that** I can assemble content models without memorising DTD syntax. | [x] |
 | F-050 | **As a** DITA architect **I want** to place a standalone Element node on the canvas **so that** I can model shared elements that appear in multiple topic types. | [x] |
 | F-051 | **As a** DITA architect **I want** to copy an element from one TopicType to another via drag **so that** I can reuse element definitions. | [ ] |
 | F-052 | **As a** DITA architect **I want** to import element definitions from a selected base type's module **so that** I start with the correct inheritance point. | [ ] |
@@ -131,7 +131,7 @@
 | F-077 | **As a** DITA architect **I want** to export all generated artefacts as a ZIP **so that** I can share or archive the full specialization package. | [x] |
 | F-078 | **As a** DITA architect **I want** to see a "Recent Projects" submenu (last 5 files) **so that** I can reopen recent work without using the file browser. | [x] |
 | F-079 | **As a** DITA architect **I want** a project metadata dialog (name, version, description) **so that** I can annotate the design with context. | [x] |
-| F-080 | **As a** DITA architect **I want** auto-save every 5 minutes **so that** I don't lose work if the app crashes. | [ ] |
+| F-080 | **As a** DITA architect **I want** auto-save every 5 minutes **so that** I don't lose work if the app crashes. | [x] |
 | F-081 | **As a** DITA architect **I want** an asterisk (*) in the window title when there are unsaved changes **so that** I always know whether my work is persisted. | [x] |
 | F-082 | **As a** DITA architect **I want** a "Save before exit?" prompt when I close the app with unsaved changes **so that** I don't lose work accidentally. | [x] |
 | F-083 | **As a** DITA architect **I want** model validation to run on save and show warnings **so that** invalid models are flagged before I generate. | [x] |
@@ -150,7 +150,7 @@
 | F-089 | **As a** DITA architect **I want** to search elements within the library browser **so that** I can find a specific DITA element quickly. | [ ] |
 | F-090 | **As a** DITA architect **I want** to drag a base-type element from the browser onto the canvas **so that** I can start a specialization from an existing element. | [ ] |
 | F-091 | **As a** DITA architect **I want** to see element documentation (from DTD comments) as a tooltip **so that** I understand what each base element does. | [ ] |
-| F-092 | **As a** DITA architect **I want** a "Reload Libraries" button **so that** I can refresh without restarting the application. | [ ] |
+| F-092 | **As a** DITA architect **I want** a "Reload Libraries" button **so that** I can refresh without restarting the application. | [x] |
 
 ---
 
@@ -162,11 +162,11 @@
 | F-094 | **As a** DITA architect **I want** to generate a `.mod` module file per TopicType **so that** element and ATTLIST declarations are in a reusable module. | [x] |
 | F-095 | **As a** DITA architect **I want** to generate a `.ent` entity file per TopicType **so that** public identifiers are declared as entities. | [x] |
 | F-096 | **As a** DITA architect **I want** DITA `class` attributes included in all generated ATTLIST declarations **so that** the specialization is DITA-compliant. | [x] |
-| F-097 | **As a** DITA architect **I want** a live DTD preview panel that updates as I edit the model **so that** I see the output without generating files. | [ ] |
+| F-097 | **As a** DITA architect **I want** a live DTD preview panel that updates as I edit the model **so that** I see the output without generating files. | [x] |
 | F-098 | **As a** DITA architect **I want** a "Copy DTD to Clipboard" button **so that** I can paste the output into another editor immediately. | [x] |
 | F-099 | **As a** DITA architect **I want** the generated DTD to be validated with the Xerces parser **so that** I know the output is syntactically correct. | [x] |
 | F-100 | **As a** DITA architect **I want** to generate DTD for a single selected TopicType **so that** I can test one module at a time. | [x] |
-| F-101 | **As a** DITA architect **I want** a configurable copyright/header comment at the top of generated files **so that** all outputs include the correct ownership notice. | [ ] |
+| F-101 | **As a** DITA architect **I want** a configurable copyright/header comment at the top of generated files **so that** all outputs include the correct ownership notice. | [x] |
 | F-102 | **As a** DITA architect **I want** a generation report listing element counts and any warnings **so that** I have a summary of what was produced. | [x] |
 
 ---
@@ -179,7 +179,7 @@
 | F-104 | **As a** DITA architect **I want** `xs:extension` from the base-type complex type **so that** the XSD correctly models the specialization hierarchy. | [x] |
 | F-105 | **As a** DITA architect **I want** child elements in `xs:sequence` with correct min/maxOccurs **so that** the schema enforces the content model. | [x] |
 | F-106 | **As a** DITA architect **I want** `xs:attribute` declarations with correct types and use="required" **so that** attribute constraints are encoded in the schema. | [x] |
-| F-107 | **As a** DITA architect **I want** a live XSD preview panel **so that** I can inspect the schema without generating files. | [ ] |
+| F-107 | **As a** DITA architect **I want** a live XSD preview panel **so that** I can inspect the schema without generating files. | [x] |
 | F-108 | **As a** DITA architect **I want** a "Copy XSD to Clipboard" button **so that** I can paste it immediately into a schema editor. | [x] |
 | F-109 | **As a** DITA architect **I want** the generated XSD to be validated with Xerces **so that** I know it is well-formed and schema-valid. | [x] |
 | F-110 | **As a** DITA architect **I want** `xs:annotation`/`xs:documentation` generated from element and attribute descriptions **so that** the XSD is self-documented. | [x] |
@@ -207,11 +207,11 @@
 | F-118 | **As a** DITA architect **I want** duplicate-name detection (highlight nodes in red) **so that** naming conflicts are visually obvious. | [x] |
 | F-119 | **As a** DITA architect **I want** circular inheritance detection **so that** invalid specialization chains are flagged immediately. | [x] |
 | F-120 | **As a** DITA architect **I want** the generated DTD/XSD to be validated and results shown in the log **so that** I know the output is correct. | [x] |
-| F-121 | **As a** DITA architect **I want** a validation panel listing all issues with "jump to node" links **so that** I can navigate directly to each problem. | [ ] |
+| F-121 | **As a** DITA architect **I want** a validation panel listing all issues with "jump to node" links **so that** I can navigate directly to each problem. | [x] |
 | F-122 | **As a** DITA architect **I want** invalid nodes to be shown with a red border **so that** errors are visually prominent on the canvas. | [x] |
 | F-123 | **As a** DITA architect **I want** a warning when a required attribute has no default value **so that** I don't generate incomplete schemas. | [x] |
-| F-124 | **As a** DITA architect **I want** orphaned element detection (elements not referenced in any content model) **so that** I can clean up unused definitions. | [ ] |
-| F-125 | **As a** DITA architect **I want** to export the validation report to a `.txt` file **so that** I can include it in a review package. | [ ] |
+| F-124 | **As a** DITA architect **I want** orphaned element detection (elements not referenced in any content model) **so that** I can clean up unused definitions. | [x] |
+| F-125 | **As a** DITA architect **I want** to export the validation report to a `.txt` file **so that** I can include it in a review package. | [x] |
 
 ---
 
@@ -220,7 +220,7 @@
 | ID | User Story | Status |
 |----|-----------|--------|
 | F-126 | **As a** DITA architect **I want** to search topic types by name (Ctrl+F) **so that** I can find a node on a large canvas instantly. | [x] |
-| F-127 | **As a** DITA architect **I want** to filter the toolbox or project tree by keyword **so that** I can narrow down large projects. | [ ] |
+| F-127 | **As a** DITA architect **I want** to filter the toolbox or project tree by keyword **so that** I can narrow down large projects. | [x] |
 | F-128 | **As a** DITA architect **I want** to jump to a node by name using a quick-open dialog (Ctrl+G) **so that** navigation is keyboard-driven. | [x] |
 | F-129 | **As a** DITA architect **I want** matched nodes to be highlighted on the canvas after a search **so that** results are visually obvious. | [x] |
 | F-130 | **As a** DITA architect **I want** to search within the generated output preview **so that** I can locate a specific declaration quickly. | [ ] |
@@ -235,11 +235,11 @@
 | F-132 | **As a** user **I want** a status bar that shows the current tool and last action **so that** I always know the application state. | [x] |
 | F-133 | **As a** user **I want** a log/console panel at the bottom **so that** I can see operation history and any errors. | [x] |
 | F-134 | **As a** user **I want** a "Clear Log" button **so that** I can declutter the console. | [x] |
-| F-135 | **As a** user **I want** a Light/Dark theme toggle **so that** I can work in my preferred visual environment. | [ ] |
+| F-135 | **As a** user **I want** a Light/Dark theme toggle **so that** I can work in my preferred visual environment. | [x] |
 | F-136 | **As a** user **I want** the zoom percentage shown in the status bar **so that** I know the canvas scale at all times. | [x] |
 | F-137 | **As a** user **I want** to show/hide the log panel with a keyboard shortcut **so that** I can reclaim canvas space. | [x] |
-| F-138 | **As a** user **I want** resizable panel dividers **so that** I can adjust the toolbox/canvas/properties proportions. | [ ] |
-| F-139 | **As a** user **I want** the window size and position remembered on restart **so that** I return to my preferred layout. | [ ] |
+| F-138 | **As a** user **I want** resizable panel dividers **so that** I can adjust the toolbox/canvas/properties proportions. | [x] |
+| F-139 | **As a** user **I want** the window size and position remembered on restart **so that** I return to my preferred layout. | [x] |
 | F-140 | **As a** user **I want** a Help → Keyboard Shortcuts dialog **so that** I can discover all available shortcuts. | [x] |
 
 ---
@@ -249,12 +249,97 @@
 | ID | User Story | Status |
 |----|-----------|--------|
 | F-141 | **As a** DITA architect **I want** an About dialog showing version, description, and technology stack **so that** I can identify the exact version in use. | [x] |
-| F-142 | **As a** DITA architect **I want** to generate an HTML documentation page from the model **so that** I can share a human-readable overview of the specialization. | [ ] |
+| F-142 | **As a** DITA architect **I want** to generate an HTML documentation page from the model **so that** I can share a human-readable overview of the specialization. | [x] |
 | F-143 | **As a** DITA architect **I want** to print the canvas diagram **so that** I can include it in a design review document. | [ ] |
-| F-144 | **As a** DITA architect **I want** to export the canvas as a PNG image **so that** I can embed the diagram in documentation. | [ ] |
-| F-145 | **As a** DITA architect **I want** to copy the diagram to the clipboard as an image **so that** I can paste it into any document quickly. | [ ] |
+| F-144 | **As a** DITA architect **I want** to export the canvas as a PNG image **so that** I can embed the diagram in documentation. | [x] |
+| F-145 | **As a** DITA architect **I want** to copy the diagram to the clipboard as an image **so that** I can paste it into any document quickly. | [x] |
 | F-146 | **As a** DITA architect **I want** to export a model summary CSV (name, base type, element count, attribute count) **so that** I can analyse the design in a spreadsheet. | [x] |
 | F-147 | **As a** user **I want** a keyboard shortcuts quick-reference dialog in the Help menu **so that** all shortcuts are discoverable without leaving the app. | [x] |
+
+---
+
+---
+
+## P · Element & Attribute In-Place Editing
+
+> **User-reported gap (2026-04-09):** Once an element or attribute is added to a topic type via the properties panel "+ New Element" / "+ Add Attribute" dialogs, there is no way to edit it — the only option is delete and re-add.
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-148 | **As a** DITA architect **I want** to click an "Edit" button next to any element in the TopicType properties panel **so that** I can open a full edit dialog to change its name, content model, cardinality, required flag, description, and attributes without deleting it. | [x] |
+| F-149 | **As a** DITA architect **I want** to click an "Edit" button next to any attribute in the TopicType properties panel **so that** I can modify its name, type, default value, required flag, fixed value, and enum values in-place. | [x] |
+| F-150 | **As a** DITA architect **I want** the element edit dialog to update the DTD fragment preview in real time as I type **so that** I can see the impact of my changes before confirming. | [x] |
+| F-151 | **As a** DITA architect **I want** the attribute edit dialog to update the DTD fragment preview in real time **so that** I can verify the ATTLIST output before saving. | [x] |
+| F-152 | **As a** DITA architect **I want** to double-click an element row in the properties panel to open the edit dialog **so that** editing is accessible without finding a small button. | [x] |
+| F-153 | **As a** DITA architect **I want** element and attribute edits to be undoable (Ctrl+Z) **so that** accidental changes can be reverted. | [x] |
+
+---
+
+## Q · Bug Fixes (found during phxTask XSD review — 2026-04-09)
+
+> These stories capture defects identified through code review and generating the phxTask sample specialization XSD and catalog.
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-154 | **As a** DITA architect **I want** Ctrl+Z to actually undo actions **so that** I can recover from mistakes. *(Bug: the undo stack is never populated — `undoStack.push()` is never called anywhere in the code, so Ctrl+Z always reports "Nothing to undo" even after changes.)* | [x] |
+| F-155 | **As a** DITA architect **I want** the Recent Projects list to be restored when I reopen the application **so that** I can access yesterday's projects without browsing. *(Bug: `recentFiles` is in-memory only; not saved to Preferences across sessions.)* | [x] |
+| F-156 | **As a** DITA architect **I want** clicking a Domain node to show domain-specific properties (description, public ID, element list) **so that** I can edit domain metadata without seeing irrelevant TopicType fields. *(Bug: domain nodes render a pseudo-TopicType, so the panel shows Base Type / Namespace / System ID / Module fields that have no meaning for domains.)* | [x] |
+| F-157 | **As a** DITA architect **I want** the "Add Element" canvas tool to place a truly standalone element node, not silently attach it to the first topic type in the model **so that** canvas layout matches model intent. *(Bug: `addElementAtPosition` always calls `parent.addElement(elem)` on `getTopicTypes().get(0)`.)* | [x] |
+| F-158 | **As a** DITA architect **I want** the generated XSD to not include a duplicate `id` attribute declaration **so that** the schema is valid W3C XML Schema. *(Bug: XsdGenerator hardcodes `<xs:attribute name="id"…/>` at line 95 AND also emits it again from `tt.getAttributes()` when `id` is explicitly defined — producing two declarations for the same attribute.)* | [x] |
+| F-159 | **As a** DITA architect **I want** the generated XSD `xs:import` to reference the correct namespace for the base DITA type **so that** schema validators can resolve the import. *(Bug: `xs:import` always uses `namespace="http://dita.oasis-open.org/architecture/2005/"` — the DITA architecture prefix namespace — instead of the base type schema's own target namespace.)* | [x] |
+| F-160 | **As a** DITA architect **I want** nested elements (e.g., `phxReqItem` inside `phxRequirements`) to not appear as siblings in the parent topic's `xs:sequence` **so that** the generated XSD correctly models the content hierarchy. *(Bug: XsdGenerator includes ALL elements in `tt.getElements()` flat in the sequence, regardless of whether they are referenced only by a sibling element's content model.)* | [x] |
+| F-161 | **As a** DITA architect **I want** enumeration attributes created via the `(val1\|val2)` type syntax to produce `xs:restriction` with `xs:enumeration` values in the generated XSD **so that** schema validation enforces allowed values. *(Bug: if enum values are stored in the `type` field rather than the `enumValues` list — as in the `phx-severity` sample — the XSD generator emits `type="xs:string"` instead of a restriction.)* | [x] |
+| F-162 | **As a** DITA architect **I want** the generated XSD to avoid duplicate global element declarations when two TopicTypes define elements with the same name **so that** the schema is valid. *(Bug: child elements are declared as global `xs:element`s — if two topic types both define an element named `title`, the XSD will contain two conflicting global declarations.)* | [x] |
+| F-163 | **As a** DITA architect **I want** Ctrl+Y to trigger Redo from the keyboard **so that** I don't have to reach for the Edit menu. *(Bug: `handleGlobalKeyPress` maps Ctrl+Z to Undo but has no mapping for Ctrl+Y → Redo.)* | [x] |
+| F-164 | **As a** DITA architect **I want** Recent Projects menu items to show the full file path as a tooltip **so that** I can distinguish two files with the same name. *(Bug: `Tooltip.install(item.getGraphic(), …)` passes `null` because `MenuItem.getGraphic()` returns null by default — tooltip is never installed.)* | [x] |
+| F-165 | **As a** DITA architect **I want** the Validation Report export to list each orphaned-element warning exactly once **so that** the report is not confusing. *(Bug: `onExportValidationReport` previously called `transformer.validate()` — which already calls `detectOrphanedElements()` internally — then called `detectOrphanedElements()` again, doubling every orphan warning. Fixed in code; story tracks regression prevention.)* | [x] |
+| F-166 | **As a** DITA architect **I want** the orphaned-element detector to not flag top-level elements with structural content models (e.g., `(phxReqItem+)`) as orphaned **so that** valid specializations don't generate false warnings. *(Bug: the original algorithm flagged any element not appearing in a sibling's content model, including root-level elements that are always part of the parent's generated content model. Fixed in code; story tracks regression prevention.)* | [x] |
+
+---
+
+## R · Project File Explorer & Live File Sync
+
+> **User-requested feature (2026-04-09):** The project should be visible on the left as a file-tree panel (like VS Code). When a new topic type is created, its schema files should be generated immediately in the project folder. When a topic type is modified in the UI, the corresponding files should be updated automatically.
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-167 | **As a** DITA architect **I want** a collapsible left-side Project Explorer panel showing the project's file tree (`dtd/`, `xsd/`, `catalog.xml`, `.ddp`) **so that** I can see all generated artefacts without leaving the tool. | [x] |
+| F-168 | **As a** DITA architect **I want** the file tree to refresh automatically whenever generation runs **so that** the explorer always reflects the current state of the output folder. | [x] |
+| F-169 | **As a** DITA architect **I want** to click any file in the Project Explorer to open a read-only preview of its content in a viewer pane **so that** I can inspect generated artefacts inline. | [x] |
+| F-170 | **As a** DITA architect **I want** a "Live Sync" toggle that automatically regenerates a topic type's `.xsd`, `.dtd`, `.mod`, and `.ent` files on every model change **so that** the output folder is always up-to-date without pressing Generate. | [x] |
+| F-171 | **As a** DITA architect **I want** a new topic type's schema files (`.dtd`, `.mod`, `.ent`, `.xsd`) to be created in the project output folder as soon as I add the topic type to the canvas **so that** file-system state immediately matches the model. | [x] |
+| F-172 | **As a** DITA architect **I want** the project output folder to be set once per project (in Project Metadata) so that Live Sync knows where to write files **so that** I don't need to choose a directory every time I generate. | [x] |
+| F-173 | **As a** DITA architect **I want** renamed or deleted topic types to cause the corresponding old schema files to be renamed or removed from the project folder **so that** stale files don't accumulate. | [x] |
+| F-174 | **As a** DITA architect **I want** `catalog.xml` to be regenerated automatically whenever the project output folder changes **so that** the catalog always reflects the current set of topic types and domains. | [x] |
+| F-175 | **As a** DITA architect **I want** the Project Explorer to highlight files that are out-of-date (modified model but not yet regenerated) with a visual indicator **so that** I know when a file needs to be refreshed. | [x] |
+| F-176 | **As a** DITA architect **I want** to right-click a file in the Project Explorer to copy its path or open its containing folder in the OS file manager **so that** I can hand it off to other tools quickly. | [x] |
+
+---
+
+## S · Namespace & Tooling Improvements
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-177 | **As a** DITA architect **I want** the tool to auto-suggest a namespace URI when I create a new TopicType, derived from the project name and type name **so that** I don't need to type namespaces by hand every time. | [x] |
+| F-178 | **As a** DITA architect **I want** the VS Code-inspired dark sidebar, VS Code-blue status bar, and monospace console **so that** the tool feels as polished and professional as my IDE. | [x] |
+
+---
+
+## T · Project Startup, Import & Content Model (2026-04-10)
+
+> Features added during the interactive refinement session.
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-179 | **As a** DITA architect **I want** a Welcome dialog on startup (Create New / Open Existing / Recent Projects) **so that** I never land on a blank Untitled canvas and can immediately choose my workflow. | [x] |
+| F-180 | **As a** DITA architect **I want** the New Project wizard to collect name, output folder (with Browse button), namespace, version, copyright, and description **so that** the project is fully configured before I draw anything. | [x] |
+| F-181 | **As a** DITA architect **I want** the Project Metadata dialog to have a Browse button for the Output Folder field **so that** I can point to a folder without typing a path. | [x] |
+| F-182 | **As a** DITA architect **I want** clicking a schema file in the Project Explorer (e.g. `phxtask.xsd`) to select the matching topic type node on the canvas and populate the Properties panel **so that** file and model stay in sync. | [x] |
+| F-183 | **As a** DITA architect **I want** to import an existing `.xsd` file (DITA → Import XSD…) and have its topic type, elements, and attributes appear on the canvas **so that** I can modify an existing specialization without rebuilding it from scratch. | [x] |
+| F-184 | **As a** DITA architect **I want** to import an existing `.dtd` or `.mod` file (DITA → Import DTD…) and have its element and attribute declarations converted into a canvas node **so that** DTD-based specializations can be managed in the tool. | [x] |
+| F-185 | **As a** DITA architect **I want** a visual Content Model Builder dialog (⚙ Build… button in Edit Element) with Sequence / Choice / Mixed / PCDATA / Empty modes, per-child cardinality, reordering, and a live preview **so that** I can define complex content models without writing DTD syntax by hand. | [x] |
+| F-186 | **As a** DITA architect **I want** to add, edit, and remove attributes directly inside the Edit Element dialog **so that** element-level attributes are managed in one place without switching panels. | [x] |
+| F-187 | **As a** DITA architect **I want** Live Sync to automatically resolve the output directory from the current project model on every change (not from a stale cached path) **so that** files are always written to the correct folder even after project metadata is updated. | [x] |
 
 ---
 
@@ -262,24 +347,28 @@
 
 | Category | Total | Done | Remaining |
 |----------|-------|------|-----------|
-| A · Canvas & Visual Editing | 20 | 19 | 1 |
-| B · Undo / Redo | 5 | 4 | 1 |
+| A · Canvas & Visual Editing | 20 | 20 | 0 |
+| B · Undo / Redo | 5 | 5 | 0 |
 | C · Topic Type Management | 15 | 15 | 0 |
-| D · Element Management | 12 | 11 | 1 |
+| D · Element Management | 12 | 10 | 2 |
 | E · Attribute Management | 12 | 12 | 0 |
 | F · Domain Management | 8 | 8 | 0 |
 | G · Project Management | 12 | 12 | 0 |
-| H · DITA Library Integration | 8 | 3 | 5 |
-| I · DTD Generation | 10 | 9 | 1 |
-| J · XSD Generation | 8 | 7 | 1 |
+| H · DITA Library Integration | 8 | 4 | 4 |
+| I · DTD Generation | 10 | 10 | 0 |
+| J · XSD Generation | 8 | 8 | 0 |
 | K · XML Catalog | 5 | 3 | 2 |
-| L · Validation & Quality | 10 | 7 | 3 |
-| M · Search & Navigation | 5 | 3 | 2 |
-| N · UI & Preferences | 10 | 9 | 1 |
-| O · Documentation & Export | 7 | 3 | 4 |
-| **TOTAL** | **147** | **136** | **21** |
-| **TOTAL** | **147** | **118** | **33** |
+| L · Validation & Quality | 10 | 10 | 0 |
+| M · Search & Navigation | 5 | 4 | 1 |
+| N · UI & Preferences | 10 | 10 | 0 |
+| O · Documentation & Export | 7 | 7 | 0 |
+| P · Element & Attribute In-Place Editing | 6 | 6 | 0 |
+| Q · Bug Fixes | 13 | 13 | 0 |
+| R · Project File Explorer & Live File Sync | 10 | 10 | 0 |
+| S · Namespace & Tooling Improvements | 2 | 2 | 0 |
+| T · Project Startup, Import & Content Model | 9 | 9 | 0 |
+| **TOTAL** | **187** | **184** | **9** |
 
 ---
 
-_Last updated: auto-updated by implementation tasks._
+_Last updated: 2026-04-10 — T section: F-179 (welcome dialog), F-180 (new project wizard), F-181 (metadata browse button), F-182 (explorer→canvas navigation), F-183 (import XSD), F-184 (import DTD), F-185 (content model builder), F-186 (element attribute editing), F-187 (live sync dir fix). Also marked F-049 [x] (content model builder covers original story)._

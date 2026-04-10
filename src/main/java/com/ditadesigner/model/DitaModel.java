@@ -15,9 +15,12 @@ public class DitaModel {
     private String description;
     private String targetNamespace;
     private String outputDir;
+    private String copyrightOwner;
     private List<TopicType> topicTypes = new ArrayList<>();
     private List<DomainDef> domains = new ArrayList<>();
     private List<Relationship> relationships = new ArrayList<>();
+    /** Standalone element nodes placed on the canvas but not yet inside a TopicType. */
+    private List<ElementDef> standaloneElements = new ArrayList<>();
 
     public DitaModel() {
         this.id = UUID.randomUUID().toString();
@@ -50,6 +53,9 @@ public class DitaModel {
     public String getOutputDir() { return outputDir; }
     public void setOutputDir(String outputDir) { this.outputDir = outputDir; }
 
+    public String getCopyrightOwner() { return copyrightOwner; }
+    public void setCopyrightOwner(String copyrightOwner) { this.copyrightOwner = copyrightOwner; }
+
     public List<TopicType> getTopicTypes() { return topicTypes; }
     public void setTopicTypes(List<TopicType> topicTypes) { this.topicTypes = topicTypes; }
 
@@ -58,6 +64,9 @@ public class DitaModel {
 
     public List<Relationship> getRelationships() { return relationships; }
     public void setRelationships(List<Relationship> relationships) { this.relationships = relationships; }
+
+    public List<ElementDef> getStandaloneElements() { return standaloneElements; }
+    public void setStandaloneElements(List<ElementDef> standaloneElements) { this.standaloneElements = standaloneElements; }
 
     // ── mutators ─────────────────────────────────────────────────────
 

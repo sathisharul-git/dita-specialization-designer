@@ -1,6 +1,8 @@
 package com.ditadesigner;
 
+import com.ditadesigner.ui.MainController;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
@@ -22,6 +24,10 @@ public class App extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMaximized(true);
         primaryStage.show();
+
+        // Show the welcome dialog after the window is fully visible
+        MainController controller = loader.getController();
+        javafx.application.Platform.runLater(controller::showWelcomeDialog);
     }
 
     public static void main(String[] args) {

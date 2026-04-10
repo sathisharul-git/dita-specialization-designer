@@ -6,7 +6,7 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.ditadesigner.ui.MainController"
-            prefWidth="1280" prefHeight="800">
+            prefWidth="1400" prefHeight="800">
 
     <!-- ═══════════════ TOP: MenuBar + ToolBar ═══════════════ -->
     <top>
@@ -28,16 +28,23 @@
                 </Menu>
                 <Menu text="DITA">
                     <MenuItem text="Load DITA Libraries..."  onAction="#onLoadDitaLibraries"/>
+                    <MenuItem text="Reload Libraries"        onAction="#onReloadLibraries"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Import XSD..."           onAction="#onImportXsd"/>
+                    <MenuItem text="Import DTD..."           onAction="#onImportDtd"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Generate DTD"            onAction="#onGenerateDtd"/>
                     <MenuItem text="Generate XSD"            onAction="#onGenerateXsd"/>
                     <MenuItem text="Generate XML Catalog"    onAction="#onGenerateCatalog"/>
+                    <MenuItem text="Generate HTML Docs..."   onAction="#onGenerateHtmlDocs"/>
                     <MenuItem text="Generate All"            onAction="#onGenerateAll"   accelerator="Ctrl+G"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Validate Model"          onAction="#onValidateModel"/>
                 </Menu>
                 <Menu text="Edit">
                     <MenuItem text="Undo"               onAction="#onUndo"           accelerator="Ctrl+Z"/>
+                    <MenuItem text="Redo"               onAction="#onRedo"           accelerator="Ctrl+Y"/>
+                    <MenuItem text="Undo History..."    onAction="#onUndoHistory"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Select All"         onAction="#onSelectAll"      accelerator="Ctrl+A"/>
                     <MenuItem text="Delete Selected"    onAction="#onDeleteSelected" accelerator="Delete"/>
@@ -47,6 +54,19 @@
                     <MenuItem text="Zoom Out"           onAction="#onZoomOut"        accelerator="Ctrl+MINUS"/>
                     <MenuItem text="Reset Zoom"         onAction="#onZoomReset"      accelerator="Ctrl+DIGIT0"/>
                     <MenuItem text="Fit to Screen"      onAction="#onFitScreen"/>
+                    <SeparatorMenuItem/>
+                    <CheckMenuItem fx:id="darkModeItem" text="Dark Mode"  onAction="#onToggleDarkMode"/>
+                    <SeparatorMenuItem/>
+                    <CheckMenuItem fx:id="logVisibleItem" text="Show Log" onAction="#onToggleLog" selected="true"/>
+                    <CheckMenuItem fx:id="explorerVisibleItem" text="Show Project Explorer" onAction="#onToggleExplorer" selected="true"/>
+                </Menu>
+                <Menu text="Export">
+                    <MenuItem text="Export Canvas as PNG..."       onAction="#onExportPng"/>
+                    <MenuItem text="Copy Diagram to Clipboard"     onAction="#onCopyDiagramToClipboard"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Generate HTML Documentation..." onAction="#onGenerateHtmlDocs"/>
+                    <MenuItem text="Export Validation Report..."   onAction="#onExportValidationReport"/>
+                    <MenuItem text="Export Summary CSV..."         onAction="#onExportCsv"/>
                 </Menu>
                 <Menu text="Help">
                     <MenuItem text="Keyboard Shortcuts" onAction="#onKeyboardShortcuts" accelerator="F1"/>
@@ -70,83 +90,113 @@
                 <Button text="＋"           onAction="#onZoomIn"          styleClass="toolbar-btn"/>
                 <Label fx:id="zoomLabel"    text="100%" style="-fx-font-size:11px; -fx-min-width:38;"/>
                 <Button text="－"           onAction="#onZoomOut"         styleClass="toolbar-btn"/>
+                <Separator/>
+                <CheckBox fx:id="liveSyncCheckBox" text="⚡ Live Sync"
+                          onAction="#onToggleLiveSync"
+                          style="-fx-font-size:11px; -fx-padding: 2 6 2 6;"/>
             </ToolBar>
         </VBox>
     </top>
 
-    <!-- ═══════════════ LEFT: Toolbox ═══════════════ -->
-    <left>
-        <VBox styleClass="toolbox" prefWidth="165" spacing="2">
-            <padding><Insets top="6" right="4" bottom="6" left="4"/></padding>
-
-            <Label text="Toolbox" styleClass="panel-title"/>
-            <Separator/>
-
-            <Label text="Add Nodes" styleClass="section-label"/>
-
-            <ToggleButton fx:id="btnAddTopicType"   text="⬛ Topic Type"  maxWidth="Infinity"
-                         onAction="#onToolTopicType"  styleClass="tool-btn"/>
-            <ToggleButton fx:id="btnAddElement"     text="◻ Element"      maxWidth="Infinity"
-                         onAction="#onToolElement"    styleClass="tool-btn"/>
-            <ToggleButton fx:id="btnAddDomain"      text="◈ Domain"       maxWidth="Infinity"
-                         onAction="#onToolDomain"     styleClass="tool-btn"/>
-
-            <Separator/>
-            <Label text="Connect" styleClass="section-label"/>
-
-            <ToggleButton fx:id="btnConnectInherit" text="↑ Inheritance"  maxWidth="Infinity"
-                         onAction="#onToolConnectInherit" styleClass="tool-btn"/>
-            <ToggleButton fx:id="btnConnectContain" text="↓ Containment"  maxWidth="Infinity"
-                         onAction="#onToolConnectContain" styleClass="tool-btn"/>
-
-            <Separator/>
-
-            <ToggleButton fx:id="btnSelect"         text="✦ Select / Move" maxWidth="Infinity"
-                         onAction="#onToolSelect"    styleClass="tool-btn" selected="true"/>
-
-            <Separator/>
-            <Label text="Samples" styleClass="section-label"/>
-
-            <Button text="phxTask Sample" maxWidth="Infinity"
-                    onAction="#onAddSample" styleClass="sample-btn"/>
-
-            <Separator/>
-            <Label text="Actions" styleClass="section-label"/>
-
-            <Button text="Validate"  maxWidth="Infinity"
-                    onAction="#onValidateModel"
-                    style="-fx-background-color: #c0392b; -fx-text-fill: white;
-                           -fx-border-radius: 4; -fx-background-radius: 4;
-                           -fx-cursor: hand; -fx-padding: 5 8 5 8; -fx-font-size: 11px;"/>
-        </VBox>
-    </left>
-
-    <!-- ═══════════════ CENTER: Canvas ═══════════════ -->
+    <!-- ═══════════════ CENTER: Resizable 3-pane SplitPane (F-138) ═══════════════ -->
     <center>
-        <ScrollPane fx:id="canvasScrollPane"
-                    pannable="false"
-                    fitToWidth="false"
-                    fitToHeight="false"
-                    styleClass="canvas-scroll">
-            <Pane fx:id="canvas"
-                  prefWidth="2400" prefHeight="1800"
-                  styleClass="canvas-pane"/>
-        </ScrollPane>
-    </center>
+        <SplitPane fx:id="mainSplitPane" dividerPositions="0.13, 0.79">
 
-    <!-- ═══════════════ RIGHT: Properties Panel ═══════════════ -->
-    <right>
-        <ScrollPane prefWidth="290" fitToWidth="true" hbarPolicy="NEVER">
-            <VBox fx:id="propertiesPanel" styleClass="props-panel" spacing="4">
-                <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
-                <Label text="Properties" styleClass="panel-title"/>
-                <Separator/>
-                <Label fx:id="propertiesPlaceholder"
-                       text="Select a node to edit properties."
-                       wrapText="true" styleClass="placeholder-label"/>
-            </VBox>
-        </ScrollPane>
-    </right>
+            <!-- LEFT: Toolbox + Project Explorer -->
+            <SplitPane orientation="VERTICAL" dividerPositions="0.55" SplitPane.resizableWithParent="false">
+                <!-- Toolbox -->
+                <VBox styleClass="toolbox" spacing="2" minWidth="140">
+                    <padding><Insets top="6" right="4" bottom="6" left="4"/></padding>
+
+                    <Label text="Toolbox" styleClass="panel-title"/>
+                    <Separator/>
+
+                    <Label text="Add Nodes" styleClass="section-label"/>
+
+                    <ToggleButton fx:id="btnAddTopicType"   text="⬛ Topic Type"  maxWidth="Infinity"
+                                 onAction="#onToolTopicType"  styleClass="tool-btn"/>
+                    <ToggleButton fx:id="btnAddElement"     text="◻ Element"      maxWidth="Infinity"
+                                 onAction="#onToolElement"    styleClass="tool-btn"/>
+                    <ToggleButton fx:id="btnAddDomain"      text="◈ Domain"       maxWidth="Infinity"
+                                 onAction="#onToolDomain"     styleClass="tool-btn"/>
+
+                    <Separator/>
+                    <Label text="Connect" styleClass="section-label"/>
+
+                    <ToggleButton fx:id="btnConnectInherit" text="↑ Inheritance"  maxWidth="Infinity"
+                                 onAction="#onToolConnectInherit" styleClass="tool-btn"/>
+                    <ToggleButton fx:id="btnConnectContain" text="↓ Containment"  maxWidth="Infinity"
+                                 onAction="#onToolConnectContain" styleClass="tool-btn"/>
+
+                    <Separator/>
+
+                    <ToggleButton fx:id="btnSelect"         text="✦ Select / Move" maxWidth="Infinity"
+                                 onAction="#onToolSelect"    styleClass="tool-btn" selected="true"/>
+
+                    <Separator/>
+                    <Label text="Samples" styleClass="section-label"/>
+
+                    <Button text="phxTask Sample" maxWidth="Infinity"
+                            onAction="#onAddSample" styleClass="sample-btn"/>
+
+                    <Separator/>
+                    <Label text="Actions" styleClass="section-label"/>
+
+                    <Button text="Validate"  maxWidth="Infinity"
+                            onAction="#onValidateModel"
+                            style="-fx-background-color: #c0392b; -fx-text-fill: white;
+                                   -fx-border-radius: 4; -fx-background-radius: 4;
+                                   -fx-cursor: hand; -fx-padding: 5 8 5 8; -fx-font-size: 11px;"/>
+                </VBox>
+
+                <!-- Project Explorer (F-167) -->
+                <VBox fx:id="explorerPanel" styleClass="toolbox" spacing="2" minWidth="140">
+                    <padding><Insets top="4" right="4" bottom="4" left="4"/></padding>
+                    <HBox alignment="CENTER_LEFT" spacing="4">
+                        <Label text="Explorer" styleClass="panel-title" HBox.hgrow="ALWAYS"/>
+                        <Button text="↻" onAction="#onRefreshExplorer"
+                                style="-fx-font-size:10px; -fx-padding: 1 4 1 4;"/>
+                        <Button text="📂" onAction="#onOpenOutputDir"
+                                style="-fx-font-size:10px; -fx-padding: 1 4 1 4;"/>
+                    </HBox>
+                    <Separator/>
+                    <!-- F-127: Filter field -->
+                    <TextField fx:id="explorerFilter"
+                               promptText="🔍 Filter files…"
+                               onKeyReleased="#onExplorerFilter"
+                               style="-fx-font-size:10px; -fx-padding: 2 4 2 4;"/>
+                    <TreeView fx:id="explorerTree" VBox.vgrow="ALWAYS"
+                              style="-fx-font-size:11px;"
+                              onMouseClicked="#onExplorerClick"/>
+                </VBox>
+            </SplitPane>
+
+            <!-- CENTER: Canvas -->
+            <ScrollPane fx:id="canvasScrollPane"
+                        pannable="false"
+                        fitToWidth="false"
+                        fitToHeight="false"
+                        styleClass="canvas-scroll">
+                <Pane fx:id="canvas"
+                      prefWidth="2400" prefHeight="1800"
+                      styleClass="canvas-pane"/>
+            </ScrollPane>
+
+            <!-- RIGHT: Properties Panel -->
+            <ScrollPane prefWidth="290" fitToWidth="true" hbarPolicy="NEVER"
+                        SplitPane.resizableWithParent="false">
+                <VBox fx:id="propertiesPanel" styleClass="props-panel" spacing="4">
+                    <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
+                    <Label text="Properties" styleClass="panel-title"/>
+                    <Separator/>
+                    <Label fx:id="propertiesPlaceholder"
+                           text="Select a node to edit properties."
+                           wrapText="true" styleClass="placeholder-label"/>
+                </VBox>
+            </ScrollPane>
+
+        </SplitPane>
+    </center>
 
     <!-- ═══════════════ BOTTOM: Log + Status Bar ═══════════════ -->
     <bottom>

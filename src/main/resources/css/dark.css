@@ -1,0 +1,343 @@
+/* ══════════════════════════════════════════════════════════════════════
+   DITA Specialization Designer — VS Code Dark Theme
+   Mirrors VS Code's default "Dark+" / "Dark Modern" palette.
+   Applied by toggling View → Dark Mode (adds this stylesheet).
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Root ────────────────────────────────────────────────────────────── */
+.root {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #cccccc;
+}
+
+/* ── MenuBar ─────────────────────────────────────────────────────────── */
+.menu-bar {
+    -fx-background-color: #3c3c3c;
+}
+
+.menu-bar .menu .label {
+    -fx-text-fill: #cccccc;
+}
+
+.menu-bar .menu:hover,
+.menu-bar .menu:focused,
+.menu-bar .menu:showing {
+    -fx-background-color: #505050;
+}
+
+/* ── ToolBar ─────────────────────────────────────────────────────────── */
+.tool-bar {
+    -fx-background-color: #252526;
+    -fx-border-color: #3c3c3c;
+    -fx-border-width: 0 0 1 0;
+}
+
+.toolbar-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: transparent;
+}
+
+.toolbar-btn:hover {
+    -fx-background-color: #3c3c3c;
+    -fx-border-color: #555555;
+}
+
+.gen-btn {
+    -fx-background-color: #0e7a40;
+    -fx-text-fill: #ffffff;
+}
+
+.gen-btn:hover {
+    -fx-background-color: #128a4a;
+}
+
+.gen-btn-primary {
+    -fx-background-color: #007acc;
+    -fx-text-fill: #ffffff;
+}
+
+.gen-btn-primary:hover {
+    -fx-background-color: #1a8ad4;
+}
+
+/* ── Toolbox / Sidebar ───────────────────────────────────────────────── */
+.toolbox {
+    -fx-background-color: #252526;
+    -fx-border-color: #3c3c3c;
+}
+
+.panel-title {
+    -fx-text-fill: #bbbbbb;
+}
+
+.section-label {
+    -fx-text-fill: #858585;
+}
+
+.tool-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: transparent;
+}
+
+.tool-btn:hover {
+    -fx-background-color: #2a2d2e;
+    -fx-text-fill: #ffffff;
+}
+
+.tool-btn:selected {
+    -fx-background-color: #37373d;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #007acc;
+    -fx-border-width: 0 0 0 2;
+}
+
+.sample-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #454545;
+}
+
+.sample-btn:hover {
+    -fx-background-color: #2a2d2e;
+    -fx-text-fill: #ffffff;
+}
+
+/* ── Explorer TreeView ───────────────────────────────────────────────── */
+.tree-view {
+    -fx-background-color: #252526;
+}
+
+.tree-view .tree-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+}
+
+.tree-view .tree-cell:selected {
+    -fx-background-color: #094771;
+    -fx-text-fill: #ffffff;
+}
+
+.tree-view .tree-cell:hover {
+    -fx-background-color: #2a2d2e;
+}
+
+/* ── Canvas ──────────────────────────────────────────────────────────── */
+.canvas-scroll {
+    -fx-background-color: #1e1e1e;
+    -fx-background: #1e1e1e;
+}
+
+.canvas-pane {
+    -fx-background-color:
+        linear-gradient(from 0px 0px to 20px 0px, repeat,
+            transparent 95%, #2a2d2e 95%),
+        linear-gradient(from 0px 0px to 0px 20px, repeat,
+            transparent 95%, #2a2d2e 95%),
+        #1e1e1e;
+}
+
+/* ── Properties Panel ────────────────────────────────────────────────── */
+.props-panel {
+    -fx-background-color: #252526;
+    -fx-border-color: #3c3c3c;
+}
+
+.props-panel .label {
+    -fx-text-fill: #cccccc;
+}
+
+.props-panel .text-field,
+.props-panel .text-area {
+    -fx-background-color: #3c3c3c;
+    -fx-control-inner-background: #3c3c3c;
+    -fx-text-fill: #d4d4d4;
+    -fx-border-color: #555555;
+    -fx-prompt-text-fill: #6a6a6a;
+}
+
+.props-panel .text-field:focused,
+.props-panel .text-area:focused {
+    -fx-border-color: #007acc;
+}
+
+.props-panel .combo-box {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #555555;
+}
+
+.props-panel .combo-box .label {
+    -fx-text-fill: #cccccc;
+}
+
+.props-panel .combo-box-popup .list-view {
+    -fx-background-color: #252526;
+    -fx-border-color: #454545;
+}
+
+.props-panel .combo-box-popup .list-cell {
+    -fx-background-color: #252526;
+    -fx-text-fill: #cccccc;
+}
+
+.props-panel .combo-box-popup .list-cell:selected,
+.props-panel .combo-box-popup .list-cell:focused {
+    -fx-background-color: #094771;
+}
+
+.props-panel .separator .line {
+    -fx-border-color: #3c3c3c;
+}
+
+.props-panel .button {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #555555;
+}
+
+.props-panel .button:hover {
+    -fx-background-color: #505050;
+}
+
+.props-panel .check-box .label {
+    -fx-text-fill: #cccccc;
+}
+
+.placeholder-label {
+    -fx-text-fill: #5a5a5a;
+}
+
+/* ── Log / Console ───────────────────────────────────────────────────── */
+.log-area {
+    -fx-background-color: #1e1e1e;
+    -fx-control-inner-background: #1e1e1e;
+    -fx-text-fill: #4ec994;
+    -fx-border-color: #3c3c3c;
+}
+
+.log-area .content {
+    -fx-background-color: #1e1e1e;
+}
+
+/* ── Status Bar ──────────────────────────────────────────────────────── */
+.status-bar {
+    -fx-background-color: #007acc;
+}
+
+.status-bar .label {
+    -fx-text-fill: #ffffff;
+}
+
+/* ── Dialogs ─────────────────────────────────────────────────────────── */
+.dialog-pane {
+    -fx-background-color: #252526;
+    -fx-border-color: #3c3c3c;
+}
+
+.dialog-pane .label {
+    -fx-text-fill: #cccccc;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #2d2d30;
+}
+
+.dialog-pane .header-panel .label {
+    -fx-text-fill: #cccccc;
+}
+
+.dialog-pane .button-bar .button {
+    -fx-background-color: #0e639c;
+    -fx-text-fill: #ffffff;
+    -fx-border-radius: 2;
+    -fx-background-radius: 2;
+}
+
+.dialog-pane .button-bar .button:hover {
+    -fx-background-color: #1177bb;
+}
+
+.dialog-pane .text-field,
+.dialog-pane .text-area {
+    -fx-background-color: #3c3c3c;
+    -fx-control-inner-background: #3c3c3c;
+    -fx-text-fill: #d4d4d4;
+    -fx-border-color: #555555;
+    -fx-prompt-text-fill: #6a6a6a;
+}
+
+.dialog-pane .combo-box {
+    -fx-background-color: #3c3c3c;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #555555;
+}
+
+.dialog-pane .combo-box .label {
+    -fx-text-fill: #cccccc;
+}
+
+.dialog-pane .check-box .label {
+    -fx-text-fill: #cccccc;
+}
+
+.dialog-pane .separator .line {
+    -fx-border-color: #3c3c3c;
+}
+
+/* ── Scroll bars ─────────────────────────────────────────────────────── */
+.scroll-bar {
+    -fx-background-color: #1e1e1e;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #4e4e4e;
+    -fx-background-radius: 4;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #6a6a6a;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: #1e1e1e;
+}
+
+/* ── SplitPane ───────────────────────────────────────────────────────── */
+.split-pane {
+    -fx-background-color: #252526;
+    -fx-border-color: #3c3c3c;
+}
+
+.split-pane .split-pane-divider {
+    -fx-background-color: #3c3c3c;
+}
+
+/* ── Separator ───────────────────────────────────────────────────────── */
+.separator .line {
+    -fx-border-color: #3c3c3c;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────────── */
+.tooltip {
+    -fx-background-color: #252526;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #454545;
+    -fx-border-width: 1;
+}
+
+/* ── Check-box in toolbar ────────────────────────────────────────────── */
+.check-box .label {
+    -fx-text-fill: #cccccc;
+}
+
+/* ── Alert dialogs ───────────────────────────────────────────────────── */
+.alert .dialog-pane {
+    -fx-background-color: #252526;
+}
+
+.alert .dialog-pane .label {
+    -fx-text-fill: #cccccc;
+}

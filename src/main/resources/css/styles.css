@@ -1,197 +1,313 @@
-/* ── Root ──────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════
+   DITA Specialization Designer — VS Code-inspired Light Theme
+   Color palette mirrors VS Code's default light theme structure.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Root ────────────────────────────────────────────────────────────── */
 .root {
-    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-family: "Segoe UI", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
     -fx-font-size: 12px;
-    -fx-background-color: #f0f2f5;
+    -fx-background-color: #f3f3f3;
 }
 
-/* ── Toolbox ───────────────────────────────────────────────────────── */
+/* ── MenuBar — VS Code style dark top bar ────────────────────────────── */
+.menu-bar {
+    -fx-background-color: #3c3c3c;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+.menu-bar .menu .label {
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 12px;
+}
+
+.menu-bar .menu:hover,
+.menu-bar .menu:focused,
+.menu-bar .menu:showing {
+    -fx-background-color: #505050;
+}
+
+.context-menu {
+    -fx-background-color: #252526;
+    -fx-border-color: #454545;
+    -fx-border-width: 1;
+}
+
+.context-menu .menu-item .label {
+    -fx-text-fill: #cccccc;
+}
+
+.context-menu .menu-item:focused {
+    -fx-background-color: #094771;
+}
+
+/* ── ToolBar — VS Code-style editor toolbar ───────────────────────────── */
+.tool-bar {
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: #d4d4d4;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 2 6 2 6;
+    -fx-spacing: 4;
+}
+
+.toolbar-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #3c3c3c;
+    -fx-border-color: transparent;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-cursor: hand;
+    -fx-padding: 3 8 3 8;
+    -fx-font-size: 11px;
+}
+
+.toolbar-btn:hover {
+    -fx-background-color: #e8e8e8;
+    -fx-border-color: #c8c8c8;
+}
+
+.gen-btn {
+    -fx-background-color: #0e7a40;
+    -fx-text-fill: #ffffff;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 3 10 3 10;
+}
+
+.gen-btn:hover {
+    -fx-background-color: #128a4a;
+}
+
+.gen-btn-primary {
+    -fx-background-color: #007acc;
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 3 10 3 10;
+}
+
+.gen-btn-primary:hover {
+    -fx-background-color: #1a8ad4;
+}
+
+/* ── Activity Bar / Toolbox — VS Code left sidebar ────────────────────── */
 .toolbox {
-    -fx-background-color: #2c3e50;
-    -fx-border-color: #1a252f;
+    -fx-background-color: #252526;
+    -fx-border-color: #3c3c3c;
     -fx-border-width: 0 1 0 0;
+    -fx-min-width: 155;
 }
 
 .panel-title {
-    -fx-font-size: 13px;
+    -fx-font-size: 11px;
     -fx-font-weight: bold;
-    -fx-text-fill: #ecf0f1;
-    -fx-padding: 4 0 4 2;
+    -fx-text-fill: #bbbbbb;
+    -fx-padding: 6 4 4 6;
+    -fx-letter-spacing: 0.08em;
 }
 
 .section-label {
     -fx-font-size: 10px;
     -fx-font-weight: bold;
-    -fx-text-fill: #95a5a6;
-    -fx-padding: 4 0 1 2;
+    -fx-text-fill: #858585;
+    -fx-padding: 6 4 2 6;
+    -fx-letter-spacing: 0.06em;
 }
 
 .tool-btn {
-    -fx-background-color: #34495e;
-    -fx-text-fill: #ecf0f1;
-    -fx-border-color: #4a6278;
-    -fx-border-radius: 4;
-    -fx-background-radius: 4;
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: transparent;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
     -fx-cursor: hand;
-    -fx-padding: 6 8 6 8;
+    -fx-padding: 5 8 5 10;
     -fx-font-size: 11px;
+    -fx-alignment: CENTER_LEFT;
 }
 
 .tool-btn:hover {
-    -fx-background-color: #4a6278;
+    -fx-background-color: #2a2d2e;
+    -fx-text-fill: #ffffff;
 }
 
 .tool-btn:selected {
-    -fx-background-color: #2980b9;
-    -fx-border-color: #3498db;
-    -fx-text-fill: white;
+    -fx-background-color: #37373d;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #007acc;
+    -fx-border-width: 0 0 0 2;
 }
 
 .sample-btn {
-    -fx-background-color: #8e44ad;
-    -fx-text-fill: white;
-    -fx-border-radius: 4;
-    -fx-background-radius: 4;
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #454545;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
     -fx-cursor: hand;
-    -fx-padding: 5 8 5 8;
+    -fx-padding: 4 8 4 10;
     -fx-font-size: 11px;
+    -fx-alignment: CENTER_LEFT;
 }
 
 .sample-btn:hover {
-    -fx-background-color: #9b59b6;
+    -fx-background-color: #2a2d2e;
+    -fx-text-fill: #ffffff;
 }
 
-/* ── Canvas ────────────────────────────────────────────────────────── */
+/* ── Explorer TreeView ───────────────────────────────────────────────── */
+.tree-view {
+    -fx-background-color: #252526;
+    -fx-border-color: transparent;
+}
+
+.tree-view .tree-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 11px;
+    -fx-padding: 1 4 1 4;
+}
+
+.tree-view .tree-cell:selected {
+    -fx-background-color: #094771;
+    -fx-text-fill: #ffffff;
+}
+
+.tree-view .tree-cell:hover {
+    -fx-background-color: #2a2d2e;
+}
+
+/* ── Canvas ──────────────────────────────────────────────────────────── */
 .canvas-scroll {
-    -fx-background-color: #e8edf2;
+    -fx-background-color: #f0f0f0;
+    -fx-background: #f0f0f0;
 }
 
 .canvas-pane {
-    /* JavaFX CSS: use layered background-color to simulate a grid.
-       Thin 1px stripes every 40px on both axes over a white base. */
     -fx-background-color:
-        linear-gradient(from 0px 0px to 40px 0px, repeat,
-            transparent 97.5%, #dde3ea 97.5%),
-        linear-gradient(from 0px 0px to 0px 40px, repeat,
-            transparent 97.5%, #dde3ea 97.5%),
-        #ffffff;
+        linear-gradient(from 0px 0px to 20px 0px, repeat,
+            transparent 95%, #e0e0e0 95%),
+        linear-gradient(from 0px 0px to 0px 20px, repeat,
+            transparent 95%, #e0e0e0 95%),
+        #fafafa;
 }
 
-/* ── ToolBar ───────────────────────────────────────────────────────── */
-.tool-bar {
-    -fx-background-color: #ecf0f1;
-    -fx-border-color: #bdc3c7;
-    -fx-border-width: 0 0 1 0;
-}
-
-.toolbar-btn {
-    -fx-background-radius: 4;
-    -fx-border-radius: 4;
-    -fx-cursor: hand;
-}
-
-.gen-btn {
-    -fx-background-color: #27ae60;
-    -fx-text-fill: white;
-    -fx-border-radius: 4;
-    -fx-background-radius: 4;
-}
-
-.gen-btn:hover {
-    -fx-background-color: #2ecc71;
-}
-
-.gen-btn-primary {
-    -fx-background-color: #2980b9;
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-border-radius: 4;
-    -fx-background-radius: 4;
-}
-
-.gen-btn-primary:hover {
-    -fx-background-color: #3498db;
-}
-
-/* ── Properties Panel ─────────────────────────────────────────────── */
+/* ── Properties Panel ────────────────────────────────────────────────── */
 .props-panel {
-    -fx-background-color: #f8f9fa;
+    -fx-background-color: #f3f3f3;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 0 0 1;
 }
 
 .placeholder-label {
-    -fx-text-fill: #95a5a6;
+    -fx-text-fill: #858585;
     -fx-font-style: italic;
 }
 
-/* ── Log / Console ─────────────────────────────────────────────────── */
+/* ── Log / Console — VS Code integrated terminal style ───────────────── */
 .log-area {
-    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-family: "Consolas", "Cascadia Code", "Courier New", monospace;
     -fx-font-size: 11px;
-    -fx-background-color: #1e2226;
-    -fx-control-inner-background: #1e2226;
-    -fx-text-fill: #a8c8a8;
-    -fx-border-color: #333;
+    -fx-background-color: #1e1e1e;
+    -fx-control-inner-background: #1e1e1e;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #3c3c3c;
     -fx-border-width: 1 0 0 0;
 }
 
 .log-area .content {
-    -fx-background-color: #1e2226;
+    -fx-background-color: #1e1e1e;
 }
 
-/* ── Status Bar ───────────────────────────────────────────────────── */
+/* ── Status Bar — VS Code blue bottom bar ────────────────────────────── */
 .status-bar {
-    -fx-background-color: #2c3e50;
-    -fx-border-color: #1a252f;
-    -fx-border-width: 1 0 0 0;
+    -fx-background-color: #007acc;
+    -fx-border-width: 0;
 }
 
 .status-bar .label {
-    -fx-text-fill: #bdc3c7;
+    -fx-text-fill: #ffffff;
     -fx-font-size: 11px;
+    -fx-font-family: "Segoe UI", "SF Pro Text", Arial, sans-serif;
 }
 
-/* ── MenuBar ──────────────────────────────────────────────────────── */
-.menu-bar {
-    -fx-background-color: #2c3e50;
-}
-
-.menu-bar .menu .label {
-    -fx-text-fill: #ecf0f1;
-}
-
-.menu-bar .menu:hover, .menu-bar .menu:focused, .menu-bar .menu:showing {
-    -fx-background-color: #34495e;
-}
-
-/* ── ScrollPane ───────────────────────────────────────────────────── */
+/* ── ScrollPane ──────────────────────────────────────────────────────── */
 .scroll-pane > .viewport {
     -fx-background-color: transparent;
 }
 
-/* ── TextField / TextArea / ComboBox ─────────────────────────────── */
-.text-field, .text-area {
+.scroll-pane .scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane .scroll-bar .thumb {
+    -fx-background-color: #c1c1c1;
     -fx-background-radius: 4;
-    -fx-border-radius: 4;
-    -fx-border-color: #bdc3c7;
+}
+
+/* ── TextField / TextArea / ComboBox ─────────────────────────────────── */
+.text-field, .text-area {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 2;
+    -fx-border-radius: 2;
+    -fx-border-color: #d4d4d4;
     -fx-border-width: 1;
+    -fx-font-size: 11px;
 }
 
 .text-field:focused, .text-area:focused {
-    -fx-border-color: #3498db;
+    -fx-border-color: #007acc;
+    -fx-effect: dropshadow(gaussian, rgba(0,122,204,0.3), 4, 0, 0, 0);
 }
 
 .combo-box {
-    -fx-background-radius: 4;
-    -fx-border-radius: 4;
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 2;
+    -fx-border-radius: 2;
+    -fx-border-color: #d4d4d4;
+    -fx-border-width: 1;
 }
 
-/* ── Buttons ──────────────────────────────────────────────────────── */
+.combo-box:focused {
+    -fx-border-color: #007acc;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
 .button {
     -fx-cursor: hand;
+    -fx-background-radius: 2;
+    -fx-border-radius: 2;
 }
 
-/* ── Separator ────────────────────────────────────────────────────── */
+/* ── Separator ───────────────────────────────────────────────────────── */
 .separator .line {
-    -fx-border-color: #4a6278;
+    -fx-border-color: #e0e0e0;
     -fx-border-width: 0.5;
+}
+
+.toolbox .separator .line {
+    -fx-border-color: #3c3c3c;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────────── */
+.tooltip {
+    -fx-background-color: #252526;
+    -fx-text-fill: #cccccc;
+    -fx-border-color: #454545;
+    -fx-border-width: 1;
+    -fx-font-size: 11px;
+    -fx-background-radius: 2;
+}
+
+/* ── SplitPane divider ───────────────────────────────────────────────── */
+.split-pane .split-pane-divider {
+    -fx-background-color: #3c3c3c;
+    -fx-padding: 0 1 0 1;
+}
+
+/* ── Check-box in toolbar ────────────────────────────────────────────── */
+.check-box .label {
+    -fx-font-size: 11px;
 }

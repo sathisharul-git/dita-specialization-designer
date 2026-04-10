@@ -38,7 +38,8 @@ javafx {
         'javafx.controls',
         'javafx.fxml',
         'javafx.graphics',
-        'javafx.base'
+        'javafx.base',
+        'javafx.swing'
     ]
 }
 
@@ -317,3 +318,11 @@ tasks.register('printVersion') {
 
 // ── Assemble depends on shadowJar as well ────────────────────────────────────
 assemble.dependsOn shadowJar
+
+// ── Sample output generation task ──────────────────────────────
+task generateSample(type: JavaExec, dependsOn: classes) {
+    group = 'build'
+    description = 'Generate phxTask sample XSD + DTD + Catalog to sample-output/'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.ditadesigner.SampleGenerator'
+}

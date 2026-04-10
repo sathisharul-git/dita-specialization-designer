@@ -19,5 +19,4 @@ output/
 
 # Large DITA library binaries (keep source, exclude grammars zip/pdf)
 *.pdf
-src/main/resources/dita-v1.3-os-part3-all-inclusive-grammars/
 src/main/resources/dita-v1.3-os-part3-all-inclusive-html/

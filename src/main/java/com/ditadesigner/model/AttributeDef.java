@@ -17,6 +17,16 @@ public class AttributeDef {
     private String fixedValue;
     private List<String> enumValues = new ArrayList<>();
 
+    /**
+     * DITA attribute specialization base.
+     * <ul>
+     *   <li>{@code "props"} — specializes from {@code @props} (filtering/conditional)</li>
+     *   <li>{@code "base"}  — specializes from {@code @base}  (non-filtering extension)</li>
+     *   <li>{@code null} or {@code ""} — regular attribute, no specialization</li>
+     * </ul>
+     */
+    private String specializesFrom;
+
     public AttributeDef() {
         this.id = UUID.randomUUID().toString();
         this.type = "CDATA";
@@ -55,6 +65,16 @@ public class AttributeDef {
 
     public List<String> getEnumValues() { return enumValues; }
     public void setEnumValues(List<String> enumValues) { this.enumValues = enumValues; }
+
+    public String getSpecializesFrom() { return specializesFrom; }
+    public void setSpecializesFrom(String specializesFrom) {
+        this.specializesFrom = (specializesFrom == null || specializesFrom.isBlank()) ? null : specializesFrom;
+    }
+
+    /** True if this attribute specializes from @props or @base. */
+    public boolean isAttributeDomain() {
+        return "props".equals(specializesFrom) || "base".equals(specializesFrom);
+    }
 
     public void addEnumValue(String value) {
         if (!enumValues.contains(value)) {

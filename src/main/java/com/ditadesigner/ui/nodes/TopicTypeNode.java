@@ -32,7 +32,8 @@ public class TopicTypeNode extends VBox implements DiagramNode {
     private static final String DEFAULT_COLOR = "#37474f";
 
     private final TopicType topicType;
-    private boolean selected = false;
+    private boolean selected  = false;
+    private boolean collapsed = false;
 
     private final Label nameLabel;
     private final Label baseLabel;
@@ -41,6 +42,7 @@ public class TopicTypeNode extends VBox implements DiagramNode {
     private final VBox attributesBox;
     private final TextField renameField = new TextField();
     private VBox titleBar;
+    private Button collapseBtn;
 
     private double dragOrigX;
     private double dragOrigY;
@@ -51,6 +53,8 @@ public class TopicTypeNode extends VBox implements DiagramNode {
     private Consumer<TopicTypeNode>          onDeleteCallback;
     private Consumer<TopicTypeNode>          onDuplicateCallback;
     private Consumer<TopicTypeNode>          onGenerateDtdCallback;
+    private BiConsumer<String,String>        onRenameCallback;   // F-173: (oldName, newName)
+    private javafx.scene.input.MouseEvent    lastClickEvent;      // F-013: for Ctrl+Click
 
     public TopicTypeNode(TopicType topicType) {
         this.topicType = topicType;
@@ -70,9 +74,18 @@ public class TopicTypeNode extends VBox implements DiagramNode {
         nameLabel = new Label(topicType.getName());
         nameLabel.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;");
         nameLabel.setWrapText(true);
-        nameLabel.setMaxWidth(190);
+        nameLabel.setMaxWidth(165);
+        HBox.setHgrow(nameLabel, javafx.scene.layout.Priority.ALWAYS);
 
-        titleBar.getChildren().addAll(stereotype, nameLabel);
+        collapseBtn = new Button("▼");
+        collapseBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: rgba(255,255,255,0.8);" +
+                " -fx-font-size: 10px; -fx-padding: 0 2 0 2; -fx-cursor: hand;");
+        collapseBtn.setOnAction(e -> toggleCollapse());
+
+        HBox titleRow = new HBox(4, nameLabel, collapseBtn);
+        titleRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        titleBar.getChildren().addAll(stereotype, titleRow);
         setupDoubleClickRename();
 
         // ── Base-type row ─────────────────────────────────────────────
@@ -183,6 +196,8 @@ public class TopicTypeNode extends VBox implements DiagramNode {
     public void setOnDeleteCallback(Consumer<TopicTypeNode> cb)         { this.onDeleteCallback = cb; }
     public void setOnDuplicateCallback(Consumer<TopicTypeNode> cb)      { this.onDuplicateCallback = cb; }
     public void setOnGenerateDtdCallback(Consumer<TopicTypeNode> cb)    { this.onGenerateDtdCallback = cb; }
+    public void setOnRenameCallback(BiConsumer<String,String> cb)       { this.onRenameCallback = cb; }
+    public javafx.scene.input.MouseEvent getLastClickEvent()            { return lastClickEvent; }
 
     // ── Private helpers ───────────────────────────────────────────────
 
@@ -273,6 +288,7 @@ public class TopicTypeNode extends VBox implements DiagramNode {
     private void setupClick() {
         setOnMouseClicked(e -> {
             if (e.isSecondaryButtonDown()) return;
+            lastClickEvent = e;   // F-013: capture for Ctrl+Click detection
             if (e.getClickCount() == 1 && onClickCallback != null) {
                 onClickCallback.accept(this);
             }
@@ -307,7 +323,13 @@ public class TopicTypeNode extends VBox implements DiagramNode {
 
         Runnable commit = () -> {
             String newName = renameField.getText().trim();
-            if (!newName.isEmpty()) topicType.setName(newName);
+            if (!newName.isEmpty()) {
+                String oldName = topicType.getName();
+                topicType.setName(newName);
+                if (!newName.equals(oldName) && onRenameCallback != null) {
+                    onRenameCallback.accept(oldName, newName); // F-173
+                }
+            }
             int i = titleBar.getChildren().indexOf(renameField);
             if (i >= 0) titleBar.getChildren().set(i, nameLabel);
             refresh();
@@ -340,6 +362,24 @@ public class TopicTypeNode extends VBox implements DiagramNode {
             e.consume();
         });
     }
+
+    // ── Collapse / Expand (F-035) ─────────────────────────────────────
+
+    public void toggleCollapse() {
+        collapsed = !collapsed;
+        applyCollapseState();
+    }
+
+    private void applyCollapseState() {
+        // Show/hide element and attribute sections (all children after badge)
+        for (int i = 3; i < getChildren().size(); i++) {
+            getChildren().get(i).setVisible(!collapsed);
+            getChildren().get(i).setManaged(!collapsed);
+        }
+        if (collapseBtn != null) collapseBtn.setText(collapsed ? "▶" : "▼");
+    }
+
+    public boolean isCollapsed() { return collapsed; }
 
     // ── Tooltip (F-038) ───────────────────────────────────────────────
 
