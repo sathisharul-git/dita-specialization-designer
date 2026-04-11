@@ -8,11 +8,15 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import org.fxmisc.richtext.CodeArea;
 
 import java.io.File;
 import java.io.InputStream;
@@ -23,6 +27,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Controller for the XSLT Workbench window.
@@ -72,12 +78,23 @@ public class XsltUIController {
             </xsl:stylesheet>
             """;
 
+    // Detect "<xsl:" followed by a partial element name at the end of the text-before-caret
+    private static final Pattern XSL_ELEM_CTX = Pattern.compile(
+            "<xsl:([a-z-]*)$", Pattern.CASE_INSENSITIVE);
+    // Detect xsl:call-template name="" with an open value at end of text-before-caret
+    private static final Pattern CALL_TMPL_CTX = Pattern.compile(
+            "call-template\\b[^>]*\\bname=[\"']([^\"'\\n]*)$", Pattern.CASE_INSENSITIVE);
+
     // ── Services ──────────────────────────────────────────────────────────────
     private final XsltExecutionService   executionService   = new XsltExecutionService();
     private final XsltValidationService  validationService  = new XsltValidationService();
+    private final XmlCoreService         xmlCoreForSuggestions = new XmlCoreService();
     private final XPathSuggestionService suggestionService  =
-            new XPathSuggestionService(new XmlCoreService());
+            new XPathSuggestionService(xmlCoreForSuggestions);
     private final XPathSuggestionPopup   suggestionPopup    = new XPathSuggestionPopup();
+
+    // ── Cached XSLT scan (variables, params, named templates) ────────────────
+    private volatile XslVariableScanner.ScanResult cachedScan = XslVariableScanner.ScanResult.EMPTY;
 
     // ── State ─────────────────────────────────────────────────────────────────
     private final Stage ownerStage;
@@ -161,6 +178,13 @@ public class XsltUIController {
         } catch (Exception ignored) { /* stylesheet not found — continue */ }
 
         stage.setScene(scene);
+
+        // Ctrl+Shift+P → XPath Builder
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.P,
+                        KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN),
+                this::openXPathBuilder);
+
         return stage;
     }
 
@@ -219,10 +243,19 @@ public class XsltUIController {
         statusLabel.setStyle("-fx-text-fill: #555; -fx-font-size: 11px;");
         HBox.setHgrow(statusLabel, Priority.ALWAYS);
 
+        Button xpathBuilderBtn = new Button("XPath Builder…");
+        xpathBuilderBtn.setStyle("-fx-background-color: #8e44ad; -fx-text-fill: white; "
+                                 + "-fx-padding: 5 12 5 12;");
+        Tooltip.install(xpathBuilderBtn, new Tooltip(
+                "Open visual XPath Builder (Ctrl+Shift+P)"));
+        xpathBuilderBtn.setOnAction(e -> openXPathBuilder());
+
         HBox actionRow = new HBox(8,
                 runBtn, validateBtn,
                 new Separator(Orientation.VERTICAL),
                 saveOutputBtn, clearBtn,
+                new Separator(Orientation.VERTICAL),
+                xpathBuilderBtn,
                 statusLabel);
         actionRow.setPadding(new Insets(5, 8, 5, 8));
         actionRow.setStyle("-fx-alignment: CENTER_LEFT;");
@@ -259,7 +292,7 @@ public class XsltUIController {
         return mainSplit;
     }
 
-    // ── XPath smart suggestions ────────────────────────────────────────────────
+    // ── XPath smart suggestions + XSL IDE completion ──────────────────────────
 
     /**
      * Wire the XML editor, XSLT editor, suggestion service, and popup together.
@@ -273,16 +306,59 @@ public class XsltUIController {
             }
         });
 
+        // Re-scan XSLT for variables/params/named-templates on text change
+        xsltEditor.getCodeArea().textProperty().addListener((obs, old, text) -> {
+            if (text != null) cachedScan = XslVariableScanner.scan(text);
+        });
+
         // Trigger suggestions on every caret move in the XSLT editor
         xsltEditor.getCodeArea().caretPositionProperty().addListener(
                 (obs, old, pos) -> triggerSuggestions(
-                        xsltEditor.getCodeArea().getText(), pos.intValue()));
+                        xsltEditor.getCodeArea().getText(),
+                        xsltEditor.getCodeArea().getCaretPosition()));
 
-        // Accept: replace the typed prefix in the editor with the selected completion
+        // Accept: dispatch to the correct insertion strategy
         suggestionPopup.setOnAccept(completion -> {
-            var ca       = xsltEditor.getCodeArea();
-            int caretPos = ca.getCaretPosition();
-            String text  = ca.getText();
+            CodeArea ca      = xsltEditor.getCodeArea();
+            int caretPos     = ca.getCaretPosition();
+            String text      = ca.getText();
+            String before    = caretPos > 0 ? text.substring(0, caretPos) : "";
+
+            // XSL element snippet insertion
+            if (completion.startsWith("xsl:")) {
+                String localName = completion.substring(4);
+                XslKnowledgeBase.element(localName).ifPresentOrElse(
+                        el -> insertXslSnippet(ca, before, caretPos, el),
+                        () -> replaceToken(ca, caretPos, before, completion));
+                return;
+            }
+            // $variable insertion — strip leading $ from prefix length
+            String varPrefix = XslVariableScanner.detectVarPrefix(text, caretPos);
+            if (varPrefix != null && completion.startsWith("$")) {
+                int start = caretPos - varPrefix.length() - 1; // -1 for the '$'
+                if (start >= 0) ca.replaceText(start, caretPos, completion);
+                return;
+            }
+            // Named-template name — replace inside name="" value
+            Matcher ctm = CALL_TMPL_CTX.matcher(before);
+            if (ctm.find()) {
+                int start = caretPos - ctm.group(1).length();
+                if (start >= 0) ca.replaceText(start, caretPos, completion);
+                return;
+            }
+            // XSL element-name completion after "<xsl:"
+            Matcher xem = XSL_ELEM_CTX.matcher(before);
+            if (xem.find()) {
+                int start = caretPos - xem.group(1).length();
+                if (start >= 0) {
+                    String localName = completion.startsWith("xsl:") ? completion.substring(4) : completion;
+                    XslKnowledgeBase.element(localName).ifPresentOrElse(
+                            el -> insertXslSnippet(ca, before.substring(0, start - 4), start - 4, el),
+                            () -> ca.replaceText(start, caretPos, completion));
+                }
+                return;
+            }
+            // Default: XPath attribute value prefix replacement
             XPathSuggestionService.SuggestionContext ctx =
                     suggestionService.detectContext(text, caretPos);
             int start = caretPos - ctx.prefix().length();
@@ -298,40 +374,110 @@ public class XsltUIController {
     }
 
     /**
+     * Insert an XSL snippet into the editor, replacing the opening tag typed so far.
+     * The {@code |} marker in the snippet is removed and the caret is placed there.
+     */
+    private void insertXslSnippet(CodeArea ca, String before, int tagStart, XslKnowledgeBase.XslElement el) {
+        // Find where "<xsl:" starts (searching backward from tagStart)
+        int openTag = before.lastIndexOf("<xsl:");
+        if (openTag < 0) openTag = tagStart;
+        String snippet     = el.snippet();
+        int    cursorMark  = snippet.indexOf('|');
+        String insertText  = snippet.replace("|", "");
+        ca.replaceText(openTag, tagStart, insertText);
+        if (cursorMark >= 0) ca.moveTo(openTag + cursorMark);
+    }
+
+    /** Generic token replace: remove typed prefix before caret and insert completion. */
+    private void replaceToken(CodeArea ca, int caretPos, String before, String completion) {
+        // Find start of current word token before caret
+        int i = before.length() - 1;
+        while (i >= 0 && !Character.isWhitespace(before.charAt(i))
+                && before.charAt(i) != '<' && before.charAt(i) != '"'
+                && before.charAt(i) != '\'') i--;
+        int start = i + 1;
+        ca.replaceText(start, caretPos, completion);
+    }
+
+    /**
      * Detect context at the current caret position and show or hide the popup.
-     * Must be called on the FX thread (called from a property listener).
+     * Priority order: $var → &lt;xsl: element → call-template name → XPath attribute value.
      */
     private void triggerSuggestions(String xsltText, int caretPos) {
-        if (!suggestionService.hasModel()) { suggestionPopup.hide(); return; }
+        if (caretPos < 0) return;
+        String before = caretPos > 0 ? xsltText.substring(0, caretPos) : "";
 
+        // 1. $variable context
+        String varPrefix = XslVariableScanner.detectVarPrefix(xsltText, caretPos);
+        if (varPrefix != null) {
+            showSuggestionPopup(XslVariableScanner.varSuggestions(cachedScan, varPrefix));
+            return;
+        }
+
+        // 2. <xsl: element name context
+        Matcher xem = XSL_ELEM_CTX.matcher(before);
+        if (xem.find()) {
+            String typed = xem.group(1);
+            List<String> elems = XslKnowledgeBase.elementNames().stream()
+                    .filter(n -> n.startsWith(typed))
+                    .map(n -> "xsl:" + n)
+                    .toList();
+            showSuggestionPopup(elems);
+            return;
+        }
+
+        // 3. call-template name="" context
+        Matcher ctm = CALL_TMPL_CTX.matcher(before);
+        if (ctm.find()) {
+            showSuggestionPopup(
+                    XslVariableScanner.templateNameSuggestions(cachedScan, ctm.group(1)));
+            return;
+        }
+
+        // 4. XPath attribute value (select / match / test) — needs XML model
+        if (!suggestionService.hasModel()) { suggestionPopup.hide(); return; }
         XPathSuggestionService.SuggestionContext ctx =
                 suggestionService.detectContext(xsltText, caretPos);
-
         if (ctx.context() == XmlStructureModel.AttributeContext.NONE) {
             suggestionPopup.hide();
             return;
         }
-
-        List<String> suggestions = suggestionService.getSuggestions(ctx.context(), ctx.prefix());
-        showSuggestionPopup(suggestions);
+        showSuggestionPopup(suggestionService.getSuggestions(ctx.context(), ctx.prefix()));
     }
 
     /** Position and display the suggestion popup below the editor caret. */
     private void showSuggestionPopup(List<String> suggestions) {
         if (suggestions.isEmpty()) { suggestionPopup.hide(); return; }
 
-        var ca = xsltEditor.getCodeArea();
+        CodeArea ca = xsltEditor.getCodeArea();
         if (ca.getScene() == null) return;
         Window window = ca.getScene().getWindow();
 
         Optional<Bounds> boundsOpt = ca.caretBoundsProperty().getValue();
         if (boundsOpt.isEmpty()) { suggestionPopup.hide(); return; }
 
-        // caretBounds are in the CodeArea's local coordinate space — convert to screen
         Bounds screen = ca.localToScreen(boundsOpt.get());
         if (screen == null) { suggestionPopup.hide(); return; }
 
         suggestionPopup.show(window, screen.getMinX(), screen.getMaxY() + 2, suggestions);
+    }
+
+    // ── XPath Builder ─────────────────────────────────────────────────────────
+
+    /** Open the visual XPath Builder dialog and insert the result at the XSLT caret. */
+    private void openXPathBuilder() {
+        XmlStructureModel model = suggestionService.hasModel()
+                ? null   // model is package-private; pass null — dialog uses xmlCore directly
+                : null;
+        XPathBuilderDialog dlg = new XPathBuilderDialog(
+                workbenchStage, model, xmlCoreForSuggestions);
+        dlg.setMatchCounter(suggestionService::countMatches);
+
+        dlg.showAndWait().ifPresent(xpath -> {
+            CodeArea ca = xsltEditor.getCodeArea();
+            int pos = ca.getCaretPosition();
+            ca.insertText(pos, xpath);
+        });
     }
 
     private TitledPane editorPane(String title, javafx.scene.Node content) {

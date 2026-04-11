@@ -404,6 +404,25 @@
 
 ---
 
+## Y · XSL IDE Smart Completion (2026-04-11)
+
+> **Epic:** Full IDE-class completion inside the XSLT workbench: XSL element/attribute completion, `$variable` and named-template suggestions, and a visual XPath Builder dialog for composing expressions via UI.
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-214 | **As a** XSLT developer **I want** `<xsl:` to trigger a dropdown of all XSL 2.0 element names **so that** I can pick the right instruction without memorizing spelling. | [x] |
+| F-215 | **As a** XSLT developer **I want** selecting an XSL element from the dropdown to insert a ready-to-use snippet with required attributes pre-filled **so that** I can start editing values immediately. | [x] |
+| F-216 | **As a** XSLT developer **I want** XSL element suggestions to be filtered as I type after `<xsl:` **so that** I can narrow the list with partial input (e.g. `<xsl:for` → for-each, for-each-group). | [x] |
+| F-217 | **As a** XSLT developer **I want** attribute value completions to route to the XPath Builder for `XPATH`-typed attributes and to an enum picker for `ENUM`-typed attributes **so that** I always get context-appropriate assistance. | [x] |
+| F-218 | **As a** XSLT developer **I want** `$` to trigger a dropdown of all `xsl:variable` and `xsl:param` names declared in the current stylesheet **so that** I can reference variables without scrolling to find their names. | [x] |
+| F-219 | **As a** XSLT developer **I want** variable suggestions to filter as I type after `$` **so that** I can narrow to the right variable quickly. | [x] |
+| F-220 | **As a** XSLT developer **I want** `xsl:call-template name=""` to suggest all named templates declared in the stylesheet **so that** I can invoke them without copy-pasting the name. | [x] |
+| F-221 | **As a** XSLT developer **I want** a visual XPath Builder dialog (Ctrl+Shift+P) with axis, node-test, and predicate composition panels **so that** I can build complex XPath expressions via UI without writing XPath syntax by hand. | [x] |
+| F-222 | **As a** XSLT developer **I want** the XPath Builder to show a live match count as I add steps **so that** I can verify the expression against the loaded XML before inserting it. | [x] |
+| F-223 | **As a** XSLT developer **I want** clicking "Insert" in the XPath Builder to place the built expression at the current caret position in the XSLT editor **so that** I don't need to copy-paste. | [x] |
+
+---
+
 ## Progress Summary
 
 | Category | Total | Done | Remaining |
@@ -432,8 +451,9 @@
 | V · Topic Type Import & Extend | 3 | 3 | 0 |
 | W � XPath Checker Enhancements | 3 | 3 | 0 |
 | X · XPath Smart Suggestions in XSLT Editor | 8 | 8 | 0 |
-| **TOTAL** | **213** | **210** | **9** |
+| Y · XSL IDE Smart Completion | 10 | 10 | 0 |
+| **TOTAL** | **223** | **220** | **9** |
 
 ---
 
-_Last updated: 2026-04-11 (X section: F-206 to F-213 XPath Smart Suggestions in XSLT Editor) — � U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._
+_Last updated: 2026-04-11 (Y section: F-214 to F-223 XSL IDE Smart Completion — XSL element/snippet/variable/template completion + XPath Builder dialog) — (X section: F-206 to F-213 XPath Smart Suggestions in XSLT Editor) — � U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._

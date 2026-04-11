@@ -10,7 +10,7 @@ A modular Java desktop application (JavaFX + Saxon HE) for DITA architects and X
 Key modules: DITA specialization design, XSLT workbench, XPath checker, XML editing/validation.
 
 See `AGENTS.md` for full architecture overview.
-See `FEATURES.md` for all implemented and planned user stories (sections A–X).
+See `FEATURES.md` for all implemented and planned user stories (sections A–Y).
 
 ---
 
@@ -60,27 +60,24 @@ util/ service/  shared utilities and app-level services
 
 ---
 
-## Active Development: XPath Smart Suggestions (section X, F-206–F-213)
+## Completed: XPath Smart Suggestions (section X, F-206–F-213) ✓
 
-Eight user stories for XPath auto-completion inside the XSLT workbench editor:
+All eight user stories implemented. Key components:
+- `XmlStructureModel` — JAXP DOM walker; builds select/match/test suggestion banks
+- `XPathSuggestionService` — background XML parsing, Saxon match-count evaluation
+- `XPathSuggestionPopup` — JavaFX Popup with ListView, keyboard nav, async match label
 
-| ID | Summary | Status |
-|----|---------|--------|
-| F-206 | Suggestions in `select` / `match` / `test` attributes | [ ] |
-| F-207 | XML-derived suggestions (full paths, relative, attributes) | [ ] |
-| F-208 | Context-aware sets per attribute type | [ ] |
-| F-209 | Dynamic filtering as user types | [ ] |
-| F-210 | Match-count preview per suggestion | [ ] |
-| F-211 | Dropdown auto-completion with keyboard navigation | [ ] |
-| F-212 | XML parsed once and cached; suggestions within 200 ms | [ ] |
-| F-213 | Graceful handling of invalid XML / XPath | [ ] |
+## Completed: XSL IDE Smart Completion (section Y, F-214–F-223) ✓
 
-Design notes:
-- Parse the loaded XML into a structure model (element paths + attribute names) once on load/change.
-- The XSLT editor caret position determines which attribute is active (detect via text scan or token model).
-- Suggestion context: `select` → value paths; `match` → template match patterns; `test` → boolean-friendly forms.
-- Deliver completions via a JavaFX `ContextMenu` or `ListView` popup anchored near the caret.
-- Off-load XML parsing and XPath evaluation to a background thread; post results back on the FX thread.
+Ten user stories implemented. Key components:
+- `XslKnowledgeBase` — 30 XSL 2.0 elements with typed attributes and ready-to-use snippets
+- `XslVariableScanner` — regex scan of XSLT source to discover `$var`, `$param`, and named-template names
+- `XPathBuilderDialog` — visual axis / node-test / predicate composer dialog (Ctrl+Shift+P)
+- `XsltUIController` — 4-priority completion dispatch: `$var` → `<xsl:` → `call-template name` → XPath attribute
+
+## No Active Epic
+
+No epic is currently in progress. See `FEATURES.md` for remaining items (sections D, H, K, M).
 
 ---
 
