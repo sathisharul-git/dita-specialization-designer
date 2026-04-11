@@ -1,0 +1,112 @@
+/* ═══════════════════════════════════════════════════════════════════
+   XSLT Workbench — Syntax Highlighting + Editor Styles
+   Used by XsltEditor (RichTextFX CodeArea)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Code area container ──────────────────────────────────────────── */
+.code-area {
+    -fx-background-color: #1e1e1e;
+}
+
+.code-area .content-area {
+    -fx-background-color: #1e1e1e;
+}
+
+/* Default text colour */
+.code-area .text {
+    -fx-fill: #d4d4d4;
+    -fx-font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    -fx-font-size: 13px;
+}
+
+/* Caret */
+.code-area .caret {
+    -fx-stroke: #d4d4d4;
+}
+
+/* Current-line highlight */
+.code-area .paragraph-box:has-caret {
+    -fx-background-color: #2a2d2e;
+}
+
+/* Selection */
+.code-area .selection {
+    -fx-fill: #264f78;
+}
+
+/* ── Line number gutter ───────────────────────────────────────────── */
+.lineno {
+    -fx-padding: 0 8 0 8;
+    -fx-background-color: #252526;
+    -fx-text-fill: #858585;
+    -fx-font-family: 'Consolas', 'Courier New', monospace;
+    -fx-font-size: 12px;
+}
+
+/* ── Syntax token colours (VS Code Dark+ palette) ─────────────────── */
+
+/* XML / XSLT comments  <!-- ... -->  */
+.xsl-comment {
+    -fx-fill: #6a9955;
+    -fx-font-style: italic;
+}
+
+/* CDATA sections */
+.xsl-cdata {
+    -fx-fill: #9cdcfe;
+}
+
+/* xsl:* instruction names  */
+.xsl-keyword {
+    -fx-fill: #c586c0;
+    -fx-font-weight: bold;
+}
+
+/* Attribute string values  "…"  '…'  */
+.xsl-string {
+    -fx-fill: #ce9178;
+}
+
+/* Tag names  <foo  </bar  */
+.xsl-tag {
+    -fx-fill: #4ec9b0;
+}
+
+/* Attribute names  name=  */
+.xsl-attr {
+    -fx-fill: #9cdcfe;
+}
+
+/* Angle brackets, equals signs, slashes */
+.xsl-bracket {
+    -fx-fill: #808080;
+}
+
+/* XML entities  &amp;  &#160;  */
+.xsl-entity {
+    -fx-fill: #569cd6;
+}
+
+/* XPath expressions inside { } */
+.xsl-xpath {
+    -fx-fill: #dcdcaa;
+}
+
+/* ── Workbench chrome ─────────────────────────────────────────────── */
+
+/* TitledPane header */
+.xslt-workbench .titled-pane > .title {
+    -fx-background-color: #2d2d30;
+    -fx-text-fill: #cccccc;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 8 4 8;
+}
+
+/* Message / error area at the bottom */
+.xslt-message-area {
+    -fx-control-inner-background: #1e1e1e;
+    -fx-text-fill: #f48771;
+    -fx-font-family: 'Consolas', monospace;
+    -fx-font-size: 11px;
+}

@@ -57,6 +57,12 @@ dependencies {
     implementation 'commons-io:commons-io:2.13.0'
     implementation 'org.apache.commons:commons-lang3:3.13.0'
 
+    // ── XSLT Workbench module ─────────────────────────────────────────────────
+    // Saxon HE — XSLT 2.0/3.0 transformation engine
+    implementation 'net.sf.saxon:Saxon-HE:12.4'
+    // RichTextFX — syntax-highlighted code editor for JavaFX
+    implementation 'org.fxmisc.richtext:richtextfx:0.11.2'
+
     // Testing
     testImplementation platform('org.junit:junit-bom:5.9.3')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -134,20 +140,26 @@ distributions {
     }
 }
 
-// Ensure JVM args are written into the generated start scripts
+// Ensure JavaFX is launched on the module path in generated start scripts.
+// JavaFX 21 jars are in lib/, but Application plugin starts with classpath only.
 startScripts {
-    // Append the required JavaFX opens/exports to the generated OS scripts
     doLast {
-        def jvmArgs = application.applicationDefaultJvmArgs.join(' ')
-        // Unix script
-        unixScript.text = unixScript.text.replace(
-            'DEFAULT_JVM_OPTS=""',
-            'DEFAULT_JVM_OPTS="' + jvmArgs + '"'
-        )
-        // Windows BAT script
         windowsScript.text = windowsScript.text.replace(
-            'set DEFAULT_JVM_OPTS=',
-            'set DEFAULT_JVM_OPTS=' + jvmArgs
+            ' -classpath "%CLASSPATH%" com.ditadesigner.App %*',
+            ' --module-path "%APP_HOME%\\lib\\javafx-base-21-win.jar;%APP_HOME%\\lib\\javafx-graphics-21-win.jar;%APP_HOME%\\lib\\javafx-controls-21-win.jar;%APP_HOME%\\lib\\javafx-fxml-21-win.jar;%APP_HOME%\\lib\\javafx-swing-21-win.jar" --add-modules javafx.controls,javafx.fxml,javafx.swing -classpath "%CLASSPATH%" com.ditadesigner.App %*'
+        )
+
+        unixScript.text = unixScript.text.replace(
+            '''set -- \\
+        -classpath "$CLASSPATH" \\
+        com.ditadesigner.App \\
+        "$@"''',
+            '''set -- \\
+        --module-path "$APP_HOME/lib/javafx-base-21-win.jar:$APP_HOME/lib/javafx-graphics-21-win.jar:$APP_HOME/lib/javafx-controls-21-win.jar:$APP_HOME/lib/javafx-fxml-21-win.jar:$APP_HOME/lib/javafx-swing-21-win.jar" \\
+        --add-modules javafx.controls,javafx.fxml,javafx.swing \\
+        -classpath "$CLASSPATH" \\
+        com.ditadesigner.App \\
+        "$@"'''
         )
     }
 }

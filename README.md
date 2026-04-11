@@ -35,6 +35,11 @@ specializations and generating schema artefacts — DTD, XSD, and XML Catalog.
 | JSON persistence | Save/load project as `.ddp` file |
 | ZIP export | Bundle all generated artefacts as a ZIP from the UI |
 | Sample specialization | Built-in `phxTask` (extends DITA task) with elements, attributes, domain |
+| Project Explorer | Live file-tree panel with click-to-preview and Live Sync toggle |
+| Import XSD / DTD | Parse an existing schema file and create a canvas node automatically |
+| XPath Checker | Dedicated XML/XPath window with evaluate, syntax-check, XSD validation, and XML pretty print (Ctrl+Shift+P) |
+| XSLT Workbench | Syntax-highlighted XSLT/XML editor with Saxon HE transform engine (Ctrl+Shift+X) |
+| DITA → HTML | Built-in XSLT 2.0 stylesheet for converting DITA topics to styled HTML |
 
 ---
 
@@ -297,12 +302,21 @@ dita-specialization-designer/
     │   │   │   └── ModelTransformer.java← Validation + class attr builder
     │   │   ├── repository/
     │   │   │   └── ProjectRepository.java ← JSON save / load (Jackson)
+    │   │   ├── xslt/
+    │   │   │   ├── XsltModule.java      ← Entry point (lazy singleton controller)
+    │   │   │   ├── XsltUIController.java← Workbench window: editors + toolbar
+    │   │   │   ├── XsltEditor.java      ← Syntax-highlighted RichTextFX CodeArea
+    │   │   │   ├── XsltExecutionService.java ← Saxon HE transform + temp-file helpers
+    │   │   │   ├── XsltValidationService.java← Compile-time validation, line errors
+    │   │   │   └── XsltValidationError.java  ← Error DTO (line, message, severity)
     │   │   └── util/
     │   │       ├── LogService.java      ← Thread-safe FX TextArea logger
     │   │       └── FileUtil.java        ← File write / ZIP / copy helpers
     │   └── resources/
     │       ├── fxml/main.fxml           ← BorderPane layout (FXML)
-    │       └── css/styles.css           ← Dark toolbox · grid canvas theme
+    │       ├── css/styles.css           ← Dark toolbox · grid canvas theme
+    │       ├── css/xslt-editor.css      ← VS Code Dark+ token colours for XSLT
+    │       └── xslt/dita-to-html.xsl   ← Built-in DITA→HTML XSLT 2.0 stylesheet
     └── test/
         └── java/com/ditadesigner/
             └── GeneratorTest.java       ← 24 JUnit 5 tests
@@ -326,6 +340,47 @@ dita-specialization-designer/
 **DITA → Load DITA Libraries…** — point to a directory containing `.dtd` or
 `.xsd` files from your DITA installation (e.g., DITA-OT `dtd/` folder).
 This populates the base-type chooser used when creating topic types.
+
+### Importing an Existing XSD (Import & Extend)
+
+1. Click **⬛ Topic Type** in the toolbox, then click the canvas.
+2. In the dialog, select **Import & Extend existing XSD**.
+3. Click **Browse…** and choose a `.xsd` file.
+4. The tool parses the schema and pre-fills the name, base type, namespace, and elements.
+5. Adjust the name if needed, then click **OK** — the imported type appears on the canvas ready for further editing.
+
+### Using the XSLT Workbench
+
+Open the workbench from **DITA → XSLT Workbench…** (Ctrl+Shift+X) or **DITA → DITA to HTML (XSLT)…**.
+
+| Panel | Purpose |
+|---|---|
+| XML Editor (top-left) | Write or load the XML/DITA source. Use **Browse XML…** to load a file. |
+| XSLT Editor (bottom-left) | Write or load the XSLT stylesheet. Use **Browse XSLT…** to load a file. |
+| Output (right) | Shows the transformation result or error details. |
+| Console (bottom) | Captures `xsl:message` output and compile warnings. |
+
+| Action | Button | Notes |
+|---|---|---|
+| Run transformation | **▶ Run XSLT** | Runs on a background thread; output appears in the right panel |
+| Validate stylesheet | **✔ Validate** | Compiles the stylesheet and lists errors/warnings with line numbers |
+| Load built-in template | **DITA→HTML** | Loads the bundled DITA→HTML XSLT 2.0 stylesheet |
+| Save output | **Save Output…** | Writes the result panel content to a UTF-8 file |
+
+
+### Using the XPath Checker
+
+Open from **DITA ? XPath Checker...** (Ctrl+Shift+P).
+
+| Action | Button | Notes |
+|---|---|---|
+| Evaluate XPath | **Evaluate** | Runs XPath 2.0/3.1 against the current XML and lists matched values |
+| Check XPath syntax | **Check XPath** | Validates expression syntax (and declared namespaces) without executing |
+| Pretty print XML | **Pretty Print XML** | Rewrites editor XML with consistent indentation |
+| Well-formedness check | **Well-formed?** | Parses XML and shows parser errors with details |
+| Validate against schema | **Validate vs XSD...** | Validates current XML against a selected `.xsd` file |
+
+Namespace declarations can be provided as `prefix=uri` (one per line) for prefixed XPath expressions.
 
 ### Generating Artefacts
 
@@ -458,6 +513,8 @@ docker rm dita-tmp
 | Apache Xerces | 2.12.2 | XML / XSD parsing |
 | Commons IO | 2.13.0 | File utilities, ZIP |
 | Commons Lang3 | 3.13.0 | String utilities |
+| Saxon HE | 12.4 | XSLT 2.0/3.0 transformation engine |
+| RichTextFX | 0.11.2 | Syntax-highlighted code editor for JavaFX |
 | JUnit Jupiter | 5.9.3 | Unit testing |
 | JaCoCo | 0.8.11 | Code coverage |
 | Shadow plugin | 8.1.1 | Fat JAR creation |

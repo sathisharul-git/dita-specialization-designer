@@ -333,11 +333,17 @@ public class MainController implements Initializable {
             currentModel.setOutputDir(outField.getText().trim());
             currentModel.setCopyrightOwner(copyrightField.getText().trim());
             currentModel.setDescription(descField.getText().trim());
-            currentProjectFile = null;
-            dirty = false;
+            // Auto-save .ddp file inside the output directory
+            String outDirStr = outField.getText().trim();
+            File outDir = new File(outDirStr);
+            outDir.mkdirs(); // create the output directory if it doesn't exist yet
+            File ddpFile = new File(outDir, name + ".ddp");
+            currentProjectFile = ddpFile;
+            dirty = true; // mark dirty so doSave persists everything
             clearCanvas();
             showNoSelection();
             updateTitle();
+            doSave(ddpFile); // saves and resets dirty=false, updates title, adds to recent
             // Reinitialize Live Sync with the new output dir
             if (liveSyncCheckBox != null && liveSyncCheckBox.isSelected()) {
                 liveSyncEnabled = true;
@@ -345,7 +351,7 @@ public class MainController implements Initializable {
             }
             refreshExplorer();
             setStatus("New project created: " + name + "  —  Click 'Topic Type' in the Toolbox to start");
-            log.logSuccess("New project: " + name + " → " + outField.getText().trim());
+            log.logSuccess("New project: " + name + " → " + outDirStr + "  [auto-saved: " + ddpFile.getName() + "]");
             return true;
         }).orElse(false);
     }
@@ -530,24 +536,186 @@ public class MainController implements Initializable {
     }
 
     private void addTopicTypeAtPosition(double x, double y) {
-        String name = promptName("New Topic Type", "topicName", "MyTopic");
-        if (name == null || name.isBlank()) return;
-
-        String baseType = chooseBaseType();
-        if (baseType == null) return;
-
+        TopicType tt = showAddTopicTypeDialog(x, y);
+        if (tt == null) return;
         pushUndo();
-        TopicType tt = projectService.createTopicType(currentModel, name, baseType);
-        // F-177: auto-suggest namespace from project title + type name
-        if (tt.getNamespace() == null || tt.getNamespace().isBlank()) {
-            tt.setNamespace(deriveNamespace(currentModel, name));
-        }
         tt.setX(x - 100);
         tt.setY(y - 40);
+        currentModel.addTopicType(tt);
         placeTopicTypeNode(tt);
         markDirty();
-        setStatus("Added TopicType: " + name);
-        log.log("Added TopicType '" + name + "' (base: " + baseType + ")");
+        setStatus("Added TopicType: " + tt.getName());
+        log.log("Added TopicType '" + tt.getName() + "' (base: " + tt.getBaseType() + ")");
+    }
+
+    /**
+     * Shows a dialog with two modes:
+     *  1. Create New – enter a name + pick a DITA base type.
+     *  2. Import & Extend – browse for an existing XSD, pre-fill fields, edit name/base.
+     * Returns a ready-to-place {@link TopicType}, or null if cancelled.
+     */
+    private TopicType showAddTopicTypeDialog(double canvasX, double canvasY) {
+        // ── state ────────────────────────────────────────────────────────
+        final TopicType[] importedHolder = {null}; // holds the parsed XSD result
+
+        // ── dialog shell ─────────────────────────────────────────────────
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Add Topic Type");
+        dlg.setHeaderText("Choose how to create the new topic type");
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        // ── mode radio buttons ───────────────────────────────────────────
+        RadioButton rbNew    = new RadioButton("Create New");
+        RadioButton rbImport = new RadioButton("Import & Extend existing XSD");
+        ToggleGroup modeGroup = new ToggleGroup();
+        rbNew.setToggleGroup(modeGroup);
+        rbImport.setToggleGroup(modeGroup);
+        rbNew.setSelected(true);
+
+        HBox modeRow = new HBox(16, rbNew, rbImport);
+        modeRow.setStyle("-fx-alignment: CENTER_LEFT; -fx-padding: 0 0 6 0;");
+
+        // ── "Create New" fields ──────────────────────────────────────────
+        TextField newNameField = new TextField("MyTopic");
+        newNameField.setPrefWidth(220);
+
+        List<String> baseTypes = oasisLoader.getAvailableBaseTypes();
+        ComboBox<String> baseCombo = new ComboBox<>();
+        baseCombo.getItems().addAll(baseTypes);
+        baseCombo.setValue(baseTypes.contains("task") ? "task" : (baseTypes.isEmpty() ? "topic" : baseTypes.get(0)));
+        baseCombo.setMaxWidth(Double.MAX_VALUE);
+
+        GridPane newPane = new GridPane();
+        newPane.setHgap(8); newPane.setVgap(6);
+        newPane.addRow(0, new Label("Topic Name:"), newNameField);
+        newPane.addRow(1, new Label("Base DITA Type:"), baseCombo);
+        javafx.scene.layout.ColumnConstraints cc1 = new javafx.scene.layout.ColumnConstraints();
+        cc1.setMinWidth(110);
+        javafx.scene.layout.ColumnConstraints cc2 = new javafx.scene.layout.ColumnConstraints();
+        cc2.setHgrow(javafx.scene.layout.Priority.ALWAYS);
+        newPane.getColumnConstraints().addAll(cc1, cc2);
+
+        // ── "Import & Extend" fields — declared before browseBtn so lambda can capture them ──
+        TextField xsdPathField = new TextField();
+        xsdPathField.setPromptText("Select an XSD file…");
+        xsdPathField.setEditable(false);
+        xsdPathField.setPrefWidth(210);
+
+        TextField importNameField = new TextField();
+        importNameField.setPromptText("Specialization name");
+        importNameField.setPrefWidth(210);
+
+        Label importBaseLabel = new Label("(pick an XSD first)");
+        importBaseLabel.setStyle("-fx-font-style: italic; -fx-text-fill: #666;");
+
+        TextField importNsField = new TextField();
+        importNsField.setPromptText("urn:example:dita");
+        importNsField.setPrefWidth(210);
+
+        Label importSummaryLabel = new Label("");
+        importSummaryLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #444;");
+        importSummaryLabel.setWrapText(true);
+
+        Button browseBtn = new Button("Browse…");
+        browseBtn.setOnAction(e -> {
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Select XSD to Import");
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("XSD Files", "*.xsd"));
+            File f = fc.showOpenDialog(getStage());
+            if (f == null) return;
+            xsdPathField.setText(f.getAbsolutePath());
+            try {
+                com.ditadesigner.importer.XsdImporter importer = new com.ditadesigner.importer.XsdImporter();
+                TopicType parsed = importer.importXsd(f);
+                importedHolder[0] = parsed;
+                importNameField.setText(parsed.getName());
+                importBaseLabel.setText(parsed.getBaseType());
+                importNsField.setText(parsed.getNamespace() != null ? parsed.getNamespace() : "");
+                importSummaryLabel.setText(
+                        parsed.getElements().size() + " element(s), " +
+                        parsed.getAttributes().size() + " attribute(s) imported from XSD");
+                log.log("Parsed XSD: " + f.getName() + " → base=" + parsed.getBaseType()
+                        + ", " + parsed.getElements().size() + " elements");
+            } catch (Exception ex) {
+                showError("XSD Parse Error", ex.getMessage());
+                importedHolder[0] = null;
+                importSummaryLabel.setText("Parse failed: " + ex.getMessage());
+            }
+        });
+
+        GridPane importPane = new GridPane();
+        importPane.setHgap(8); importPane.setVgap(6);
+        HBox xsdRow = new HBox(6, xsdPathField, browseBtn);
+        xsdRow.setStyle("-fx-alignment: CENTER_LEFT;");
+        javafx.scene.layout.HBox.setHgrow(xsdPathField, javafx.scene.layout.Priority.ALWAYS);
+        importPane.addRow(0, new Label("XSD File:"),            xsdRow);
+        importPane.addRow(1, new Label("Specialization Name:"), importNameField);
+        importPane.addRow(2, new Label("Extends (Base Type):"), importBaseLabel);
+        importPane.addRow(3, new Label("Target Namespace:"),    importNsField);
+        importPane.addRow(4, new Label(""), importSummaryLabel);
+        javafx.scene.layout.ColumnConstraints ic1 = new javafx.scene.layout.ColumnConstraints();
+        ic1.setMinWidth(130);
+        javafx.scene.layout.ColumnConstraints ic2 = new javafx.scene.layout.ColumnConstraints();
+        ic2.setHgrow(javafx.scene.layout.Priority.ALWAYS);
+        importPane.getColumnConstraints().addAll(ic1, ic2);
+
+        // Initially hide the import pane
+        importPane.setVisible(false);
+        importPane.setManaged(false);
+
+        // ── mode toggle wires pane visibility ────────────────────────────
+        modeGroup.selectedToggleProperty().addListener((obs, o, n) -> {
+            boolean isImport = (n == rbImport);
+            newPane.setVisible(!isImport);
+            newPane.setManaged(!isImport);
+            importPane.setVisible(isImport);
+            importPane.setManaged(isImport);
+            // enable/disable OK
+            javafx.scene.Node okBtn = dlg.getDialogPane().lookupButton(ButtonType.OK);
+            if (isImport) {
+                okBtn.setDisable(importedHolder[0] == null);
+                xsdPathField.textProperty().addListener((o2, ov, nv) ->
+                        okBtn.setDisable(importedHolder[0] == null));
+            } else {
+                okBtn.setDisable(false);
+            }
+        });
+
+        // ── also keep OK disabled when import mode + no XSD loaded ───────
+        dlg.getDialogPane().lookupButton(ButtonType.OK); // force lookup
+
+        VBox content = new VBox(10, modeRow, new javafx.scene.control.Separator(), newPane, importPane);
+        content.setPrefWidth(420);
+        content.setStyle("-fx-padding: 4 0 0 0;");
+        dlg.getDialogPane().setContent(content);
+
+        // ── handle result ────────────────────────────────────────────────
+        return dlg.showAndWait().filter(r -> r == ButtonType.OK).map(r -> {
+            TopicType tt;
+            if (rbImport.isSelected() && importedHolder[0] != null) {
+                // Use the imported TopicType, possibly with a user-adjusted name
+                tt = importedHolder[0];
+                String specName = importNameField.getText().trim();
+                if (!specName.isBlank() && !specName.equals(tt.getName())) {
+                    tt.setName(specName);
+                }
+                String ns = importNsField.getText().trim();
+                if (!ns.isBlank()) tt.setNamespace(ns);
+            } else {
+                // Create New
+                String name = newNameField.getText().trim();
+                if (name.isBlank()) name = "MyTopic";
+                String base = baseCombo.getValue();
+                tt = projectService.createTopicType(currentModel, name, base);
+                // Remove from model — addTopicTypeAtPosition will re-add after positioning
+                currentModel.getTopicTypes().remove(tt);
+            }
+            // Auto-derive namespace if blank
+            if (tt.getNamespace() == null || tt.getNamespace().isBlank()) {
+                tt.setNamespace(deriveNamespace(currentModel, tt.getName()));
+            }
+            return tt;
+        }).orElse(null);
     }
 
     private void addElementAtPosition(double x, double y) {
@@ -1266,16 +1434,40 @@ public class MainController implements Initializable {
         }
         final String finalStem = stem;
 
-        // Guard: need a loaded project with topic types
-        if (currentModel == null || currentModel.getTopicTypes().isEmpty()) {
-            setStatus("Open a project first (File → Open) to navigate topic types.");
-            return;
-        }
-
         // Find matching TopicType by resolvedModule()
-        TopicType match = currentModel.getTopicTypes().stream()
-                .filter(tt -> tt.resolvedModule().equalsIgnoreCase(finalStem))
-                .findFirst().orElse(null);
+        TopicType match = (currentModel != null)
+                ? currentModel.getTopicTypes().stream()
+                        .filter(tt -> tt.resolvedModule().equalsIgnoreCase(finalStem))
+                        .findFirst().orElse(null)
+                : null;
+
+        // No match in current model — offer to import from the XSD file
+        if (match == null && file.getName().toLowerCase().endsWith(".xsd")) {
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                    "'" + name + "' is not in the current project model.\n\n" +
+                    "Import it now to load its elements and attributes onto the canvas?",
+                    ButtonType.YES, ButtonType.NO);
+            confirm.setTitle("Import XSD");
+            confirm.setHeaderText("Topic type not found in model");
+            if (confirm.showAndWait().orElse(ButtonType.NO) == ButtonType.YES) {
+                try {
+                    com.ditadesigner.importer.XsdImporter importer = new com.ditadesigner.importer.XsdImporter();
+                    TopicType imported = importer.importXsd(file);
+                    currentModel.addTopicType(imported);
+                    placeTopicTypeNode(imported);
+                    match = imported;
+                    markDirty();
+                    log.logSuccess("Imported from Explorer: " + imported.getName()
+                            + " (" + imported.getElements().size() + " elements)");
+                } catch (Exception ex) {
+                    showError("Import Failed", ex.getMessage());
+                    log.logError("XSD import failed", ex);
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
 
         if (match == null) {
             setStatus("No topic type matches '" + finalStem + "' in the current project.");
@@ -1860,8 +2052,22 @@ public class MainController implements Initializable {
             dlg.getDialogPane().setContent(ta);
             dlg.showAndWait();
         });
+        Button sampleXmlBtn = new Button("📄 Sample XML");
+        sampleXmlBtn.setStyle("-fx-font-size: 10px; -fx-padding: 2 6 2 6;");
+        sampleXmlBtn.setTooltip(new Tooltip("Generate a sample XML instance for this topic type"));
+        sampleXmlBtn.setOnAction(e -> onGenerateSampleXml(tt));
+
+        Button validateXmlBtn = new Button("✔ Validate XML…");
+        validateXmlBtn.setStyle("-fx-font-size: 10px; -fx-padding: 2 6 2 6;");
+        validateXmlBtn.setTooltip(new Tooltip("Validate an XML file against this topic type's XSD"));
+        validateXmlBtn.setOnAction(e -> onValidateXmlAgainstXsd(tt));
+
         previewRow.getChildren().addAll(dtdPreviewBtn, xsdPreviewBtn);
         propertiesPanel.getChildren().add(previewRow);
+
+        HBox xmlRow = new HBox(6, sampleXmlBtn, validateXmlBtn);
+        xmlRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        propertiesPanel.getChildren().add(xmlRow);
 
         // ── Elements ─────────────────────────────────────────────────
         propertiesPanel.getChildren().add(new Separator());
@@ -2969,6 +3175,247 @@ public class MainController implements Initializable {
         log.logSuccess("Loaded " + count + " DITA library files from " + dir.getPath());
     }
 
+    // ── Sample XML generation ─────────────────────────────────────────
+
+    private void onGenerateSampleXml(TopicType tt) {
+        String xml = buildSampleXml(tt);
+
+        // Show in a dialog with Save and Copy buttons
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.setTitle("Sample XML — " + tt.getName());
+        dlg.setHeaderText("Sample instance document for " + tt.getName() + " (base: " + tt.getBaseType() + ")");
+
+        ButtonType saveBtn  = new ButtonType("💾 Save As…", ButtonBar.ButtonData.LEFT);
+        ButtonType copyBtn  = new ButtonType("📋 Copy",     ButtonBar.ButtonData.LEFT);
+        dlg.getDialogPane().getButtonTypes().addAll(saveBtn, copyBtn, ButtonType.CLOSE);
+        dlg.getDialogPane().setPrefWidth(700);
+
+        TextArea ta = new TextArea(xml);
+        ta.setEditable(true);   // allow user to edit before saving
+        ta.setStyle("-fx-font-family: 'Consolas','Courier New',monospace; -fx-font-size: 11px;");
+        ta.setPrefHeight(500);
+        dlg.getDialogPane().setContent(ta);
+
+        dlg.showAndWait().ifPresent(result -> {
+            if (result == saveBtn) {
+                FileChooser fc = new FileChooser();
+                fc.setTitle("Save Sample XML");
+                fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("XML files (*.xml)", "*.xml"));
+                fc.setInitialFileName(tt.resolvedModule() + "-sample.xml");
+                // Pre-navigate to output dir if available
+                File outDir = resolveOutputDir();
+                if (outDir != null && outDir.exists()) fc.setInitialDirectory(outDir);
+                File dest = fc.showSaveDialog(getStage());
+                if (dest != null) {
+                    try {
+                        java.nio.file.Files.writeString(dest.toPath(), ta.getText());
+                        log.logSuccess("Sample XML saved: " + dest.getPath());
+                        setStatus("Sample XML saved: " + dest.getName());
+                        refreshExplorer();
+                    } catch (Exception ex) {
+                        showError("Save Failed", ex.getMessage());
+                    }
+                }
+            } else if (result == copyBtn) {
+                javafx.scene.input.Clipboard.getSystemClipboard().setContent(
+                        new javafx.scene.input.ClipboardContent() {{ putString(ta.getText()); }});
+                setStatus("Sample XML copied to clipboard.");
+            }
+        });
+    }
+
+    /** Build a minimal but complete XML instance for the given TopicType. */
+    private String buildSampleXml(TopicType tt) {
+        String stem   = tt.resolvedModule();
+        String ns     = tt.getNamespace() != null ? tt.getNamespace() : "";
+        String nsDecl = ns.isBlank() ? "" : " xmlns=\"" + ns + "\"";
+        String base   = tt.getBaseType();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>").append("\n");
+        sb.append("<!--\n  Sample XML instance for ").append(tt.getName())
+          .append(" (specializes: ").append(base).append(")\n  Generated by DITA Specialization Designer\n-->\n");
+        sb.append("<!DOCTYPE ").append(stem);
+        // Add DOCTYPE reference if public/system ID are set
+        String pubId = tt.getPublicId();
+        String sysId = tt.getSystemId();
+        if (pubId != null && !pubId.isBlank()) {
+            sb.append("\n  PUBLIC \"").append(pubId).append("\"");
+            sb.append("\n         \"").append(sysId != null ? sysId : stem + ".dtd").append("\"");
+        } else {
+            sb.append(" SYSTEM \"").append(stem).append(".dtd\"");
+        }
+        sb.append(">\n\n");
+
+        // Root element
+        sb.append("<").append(stem)
+          .append(" id=\"sample-").append(stem).append("\"")
+          .append(nsDecl);
+
+        // Add required attributes
+        for (AttributeDef attr : tt.getAttributes()) {
+            if (attr.isRequired() && !"id".equalsIgnoreCase(attr.getName())
+                    && !"class".equalsIgnoreCase(attr.getName())) {
+                String val = attr.getDefaultValue() != null && !attr.getDefaultValue().isBlank()
+                        ? attr.getDefaultValue()
+                        : (!attr.getEnumValues().isEmpty() ? attr.getEnumValues().get(0) : "value");
+                sb.append("\n  ").append(attr.getName()).append("=\"").append(val).append("\"");
+            }
+        }
+        sb.append(">\n\n");
+
+        // Title (standard DITA element)
+        sb.append("  <title>Sample ").append(tt.getName()).append(" Title</title>\n");
+
+        // Short desc
+        if (base.equals("concept") || base.equals("topic") || base.equals("reference")) {
+            sb.append("  <shortdesc>Short description of this ").append(tt.getName()).append(".</shortdesc>\n");
+        }
+
+        // Body element based on base type
+        String bodyElem = switch (base) {
+            case "task"      -> "taskbody";
+            case "concept"   -> "conbody";
+            case "reference" -> "refbody";
+            default          -> "body";
+        };
+        sb.append("  <").append(bodyElem).append(">\n");
+
+        // Child elements
+        for (ElementDef elem : tt.getElements()) {
+            String card = elem.getCardinality();
+            boolean optional = "?".equals(card) || "*".equals(card);
+            sb.append("    <!-- ").append(optional ? "optional" : "required").append(" -->\n");
+            sb.append("    <").append(elem.getName());
+            // Required attributes on the element
+            for (AttributeDef a : elem.getAttributes()) {
+                if (a.isRequired()) {
+                    String val = a.getDefaultValue() != null && !a.getDefaultValue().isBlank()
+                            ? a.getDefaultValue()
+                            : (!a.getEnumValues().isEmpty() ? a.getEnumValues().get(0) : "value");
+                    sb.append(" ").append(a.getName()).append("=\"").append(val).append("\"");
+                }
+            }
+            // Self-close if content model is EMPTY, otherwise add placeholder text
+            String cm = elem.getContentModel();
+            if ("EMPTY".equalsIgnoreCase(cm)) {
+                sb.append("/>\n");
+            } else {
+                sb.append(">Sample ").append(elem.getName()).append(" content</").append(elem.getName()).append(">\n");
+            }
+        }
+
+        sb.append("  </").append(bodyElem).append(">\n");
+        sb.append("\n</").append(stem).append(">\n");
+        return sb.toString();
+    }
+
+    // ── XML Validation against XSD ────────────────────────────────────
+
+    private void onValidateXmlAgainstXsd(TopicType tt) {
+        // Resolve the XSD file path
+        File outDir = resolveOutputDir();
+        File xsdFile = (outDir != null)
+                ? new File(outDir, "xsd/" + tt.resolvedModule() + ".xsd")
+                : null;
+
+        if (xsdFile == null || !xsdFile.exists()) {
+            // Ask user to locate XSD if not found
+            Alert info = new Alert(Alert.AlertType.INFORMATION,
+                    "XSD file not found at expected location:\n" +
+                    (xsdFile != null ? xsdFile.getPath() : "(no output dir set)") +
+                    "\n\nGenerate All first, or the file chooser will open for you to locate the XSD.",
+                    ButtonType.OK);
+            info.setTitle("XSD Not Found");
+            info.showAndWait();
+        }
+
+        // Choose XML file to validate
+        FileChooser xmlChooser = new FileChooser();
+        xmlChooser.setTitle("Select XML file to validate");
+        xmlChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("XML files (*.xml)", "*.xml"),
+                new FileChooser.ExtensionFilter("All files", "*.*"));
+        if (outDir != null && outDir.exists()) xmlChooser.setInitialDirectory(outDir);
+        File xmlFile = xmlChooser.showOpenDialog(getStage());
+        if (xmlFile == null) return;
+
+        // If XSD still missing, let user pick it
+        if (xsdFile == null || !xsdFile.exists()) {
+            FileChooser xsdChooser = new FileChooser();
+            xsdChooser.setTitle("Select XSD Schema to validate against");
+            xsdChooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("XSD Schema (*.xsd)", "*.xsd"));
+            xsdFile = xsdChooser.showOpenDialog(getStage());
+            if (xsdFile == null) return;
+        }
+
+        // Run validation
+        List<String> errors = validateXmlWithXsd(xmlFile, xsdFile);
+        showXmlValidationResult(xmlFile, xsdFile, errors);
+    }
+
+    private List<String> validateXmlWithXsd(File xmlFile, File xsdFile) {
+        List<String> errors = new ArrayList<>();
+        try {
+            javax.xml.validation.SchemaFactory sf =
+                    javax.xml.validation.SchemaFactory.newInstance(javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI);
+            javax.xml.validation.Schema schema = sf.newSchema(xsdFile);
+            javax.xml.validation.Validator validator = schema.newValidator();
+
+            // Collect all errors/warnings instead of throwing immediately
+            validator.setErrorHandler(new org.xml.sax.ErrorHandler() {
+                @Override public void warning(org.xml.sax.SAXParseException e) {
+                    errors.add("⚠ Line " + e.getLineNumber() + ": " + e.getMessage());
+                }
+                @Override public void error(org.xml.sax.SAXParseException e) {
+                    errors.add("✕ Line " + e.getLineNumber() + ": " + e.getMessage());
+                }
+                @Override public void fatalError(org.xml.sax.SAXParseException e) {
+                    errors.add("✕✕ Line " + e.getLineNumber() + ": " + e.getMessage());
+                }
+            });
+            validator.validate(new javax.xml.transform.stream.StreamSource(xmlFile));
+        } catch (Exception ex) {
+            errors.add("Validation error: " + ex.getMessage());
+        }
+        return errors;
+    }
+
+    private void showXmlValidationResult(File xmlFile, File xsdFile, List<String> errors) {
+        Dialog<ButtonType> dlg = new Dialog<>();
+        dlg.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dlg.getDialogPane().setPrefWidth(620);
+
+        if (errors.isEmpty()) {
+            dlg.setTitle("Validation Passed");
+            dlg.setHeaderText("✔ XML is valid against the XSD schema");
+            Label msg = new Label(
+                    "File: " + xmlFile.getName() + "\nSchema: " + xsdFile.getName() +
+                    "\n\nNo errors or warnings found.");
+            msg.setStyle("-fx-text-fill: #1a6b1a; -fx-font-size: 12px;");
+            dlg.getDialogPane().setContent(msg);
+            log.logSuccess("XML valid: " + xmlFile.getName() + " against " + xsdFile.getName());
+            setStatus("✔ XML valid: " + xmlFile.getName());
+        } else {
+            dlg.setTitle("Validation Failed — " + errors.size() + " issue(s)");
+            dlg.setHeaderText("✕ " + errors.size() + " issue(s) found in " + xmlFile.getName());
+            VBox content = new VBox(8);
+            content.setPadding(new Insets(8));
+            Label schema = new Label("Schema: " + xsdFile.getName());
+            schema.setStyle("-fx-font-size: 10px; -fx-text-fill: #555;");
+            TextArea ta = new TextArea(String.join("\n", errors));
+            ta.setEditable(false);
+            ta.setStyle("-fx-font-family: 'Consolas','Courier New',monospace; -fx-font-size: 11px;");
+            ta.setPrefHeight(300);
+            content.getChildren().addAll(schema, ta);
+            dlg.getDialogPane().setContent(content);
+            log.logError("XML validation: " + errors.size() + " issue(s) in " + xmlFile.getName(), null);
+            setStatus("✕ XML validation: " + errors.size() + " issue(s)");
+        }
+        dlg.showAndWait();
+    }
+
     // ── Import XSD / DTD ─────────────────────────────────────────────
 
     @FXML
@@ -3079,6 +3526,42 @@ public class MainController implements Initializable {
         }
     }
 
+    // ── XPath Checker (XPathModule integration) ─────────────────────────────────
+
+    @FXML
+    private void onOpenXPathChecker() {
+        com.ditadesigner.xpath.XPathModule.openChecker(getStage());
+        log.log("XPath Checker opened.");
+    }
+
+    // ── XSLT Workbench (XsltModule integration) ─────────────────────────────────
+
+    @FXML
+    private void onOpenXsltWorkbench() {
+        com.ditadesigner.xslt.XsltModule.openWorkbench(getStage());
+        log.log("XSLT Workbench opened.");
+    }
+
+    @FXML
+    private void onDitaToHtml() {
+        // If a generated XSD / output dir exists, offer to pick the XML directly
+        File xmlFile = null;
+        if (currentModel != null) {
+            File outDir = resolveOutputDir();
+            if (outDir != null && outDir.exists()) {
+                // Look for a DITA XML file in the output dir
+                File[] ditaFiles = outDir.listFiles(
+                        f -> f.getName().endsWith(".xml") || f.getName().endsWith(".dita"));
+                if (ditaFiles != null && ditaFiles.length == 1) {
+                    xmlFile = ditaFiles[0];
+                    log.log("[XSLT] Pre-selected DITA file: " + xmlFile.getName());
+                }
+            }
+        }
+        com.ditadesigner.xslt.XsltModule.openWorkbench(getStage(), xmlFile, null);
+        log.log("XSLT Workbench opened for DITA → HTML.");
+    }
+
     @FXML
     private void onGenerateDtd() {
         File outputDir = chooseOutputDir();
@@ -3102,15 +3585,19 @@ public class MainController implements Initializable {
 
     @FXML
     private void onGenerateXsd() {
+        com.ditadesigner.generator.XsdGenerator.ExportMode mode = showXsdExportModeDialog();
+        if (mode == null) return;
+
         File outputDir = chooseOutputDir();
         if (outputDir == null) return;
 
         try {
-            xsdGenerator.generate(currentModel, outputDir);
+            xsdGenerator.generate(currentModel, outputDir, mode);
             int count = currentModel.getTopicTypes().size();
-            log.logSuccess("XSD generated for " + count + " topic type(s) → " + outputDir.getPath());
+            log.logSuccess("XSD generated (" + mode + ") for " + count
+                    + " topic type(s) → " + outputDir.getPath());
             logGenerationReport(outputDir, "XSD");
-            setStatus("XSD generated (" + count + " type(s)).");
+            setStatus("XSD generated [" + mode + "] (" + count + " type(s)).");
             refreshExplorer();
         } catch (Exception ex) {
             showError("XSD Generation Failed", ex.getMessage());
@@ -3136,6 +3623,9 @@ public class MainController implements Initializable {
 
     @FXML
     private void onGenerateAll() {
+        com.ditadesigner.generator.XsdGenerator.ExportMode mode = showXsdExportModeDialog();
+        if (mode == null) return;
+
         File outputDir = chooseOutputDir();
         if (outputDir == null) return;
 
@@ -3143,8 +3633,8 @@ public class MainController implements Initializable {
         if (!issues.isEmpty()) showWarnings(issues);
 
         try {
-            doGenerate(outputDir);
-            setStatus("All artefacts generated → " + outputDir.getPath());
+            doGenerate(outputDir, mode);
+            setStatus("All artefacts generated [XSD: " + mode + "] → " + outputDir.getPath());
             refreshExplorer();
         } catch (Exception ex) {
             showError("Generation Failed", ex.getMessage());
@@ -3152,18 +3642,28 @@ public class MainController implements Initializable {
         }
     }
 
+    /**
+     * Called by Live Sync and other automatic paths — always uses STANDALONE so
+     * no dialog interrupts the background generation.
+     */
     private void doGenerate(File outputDir) throws Exception {
+        doGenerate(outputDir, com.ditadesigner.generator.XsdGenerator.ExportMode.STANDALONE);
+    }
+
+    private void doGenerate(File outputDir,
+                             com.ditadesigner.generator.XsdGenerator.ExportMode xsdMode) throws Exception {
         FileUtil.ensureDir(outputDir);
         log.log("─── Generate All ──────────────────────────────");
         log.log("Output: " + outputDir.getPath());
-        log.log("Model: " + currentModel.getName()
+        log.log("Model:  " + currentModel.getName()
                 + " · " + currentModel.getTopicTypes().size() + " type(s)"
                 + " · " + currentModel.getDomains().size() + " domain(s)");
+        log.log("XSD mode: " + xsdMode);
 
         dtdGenerator.generate(currentModel, outputDir);
         logGenerationReport(outputDir, "DTD");
 
-        xsdGenerator.generate(currentModel, outputDir);
+        xsdGenerator.generate(currentModel, outputDir, xsdMode);
         logGenerationReport(outputDir, "XSD");
 
         catalogGenerator.generate(currentModel, outputDir);
@@ -3172,6 +3672,53 @@ public class MainController implements Initializable {
         log.logSuccess("Generation complete → " + outputDir.getPath());
         log.log("───────────────────────────────────────────────");
         lastGenerationMs = System.currentTimeMillis();  // F-175
+    }
+
+    /**
+     * Shows a modal dialog asking the user to choose between STANDALONE and
+     * OASIS_CATALOG XSD export modes.
+     *
+     * @return the chosen {@link com.ditadesigner.generator.XsdGenerator.ExportMode},
+     *         or {@code null} if the user cancelled
+     */
+    private com.ditadesigner.generator.XsdGenerator.ExportMode showXsdExportModeDialog() {
+        javafx.scene.control.Dialog<com.ditadesigner.generator.XsdGenerator.ExportMode> dlg =
+                new javafx.scene.control.Dialog<>();
+        dlg.setTitle("XSD Export Mode");
+        dlg.setHeaderText("How should the generated XSD reference DITA base types?");
+
+        javafx.scene.control.ToggleGroup group = new javafx.scene.control.ToggleGroup();
+
+        javafx.scene.control.RadioButton standalone = new javafx.scene.control.RadioButton(
+                "Standalone  (recommended for most users)\n"
+                + "    Embeds minimal DITA base-type stubs inline.\n"
+                + "    Validates without DITA-OT or any XML catalog.");
+        standalone.setToggleGroup(group);
+        standalone.setSelected(true);
+
+        javafx.scene.control.RadioButton oasis = new javafx.scene.control.RadioButton(
+                "OASIS DITA-OT compatible\n"
+                + "    Uses standard xs:import with OASIS DITA 1.3 URNs.\n"
+                + "    Requires OASIS DITA 1.3 schemas registered in your system XML catalog.");
+        oasis.setToggleGroup(group);
+
+        javafx.scene.layout.VBox content = new javafx.scene.layout.VBox(14, standalone, oasis);
+        content.setPadding(new javafx.geometry.Insets(16));
+        dlg.getDialogPane().setContent(content);
+        dlg.getDialogPane().getButtonTypes().addAll(
+                javafx.scene.control.ButtonType.OK,
+                javafx.scene.control.ButtonType.CANCEL);
+
+        dlg.setResultConverter(bt -> {
+            if (bt == javafx.scene.control.ButtonType.OK) {
+                return oasis.isSelected()
+                        ? com.ditadesigner.generator.XsdGenerator.ExportMode.OASIS_CATALOG
+                        : com.ditadesigner.generator.XsdGenerator.ExportMode.STANDALONE;
+            }
+            return null;
+        });
+
+        return dlg.showAndWait().orElse(null);
     }
 
     private void logGenerationReport(File outputDir, String type) {

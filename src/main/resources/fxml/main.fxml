@@ -40,6 +40,10 @@
                     <MenuItem text="Generate All"            onAction="#onGenerateAll"   accelerator="Ctrl+G"/>
                     <SeparatorMenuItem/>
                     <MenuItem text="Validate Model"          onAction="#onValidateModel"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="XSLT Workbench..."       onAction="#onOpenXsltWorkbench" accelerator="Ctrl+Shift+X"/>
+                    <MenuItem text="DITA to HTML (XSLT)..."  onAction="#onDitaToHtml"/>
+                    <MenuItem text="XPath Checker..."        onAction="#onOpenXPathChecker" accelerator="Ctrl+Shift+P"/>
                 </Menu>
                 <Menu text="Edit">
                     <MenuItem text="Undo"               onAction="#onUndo"           accelerator="Ctrl+Z"/>

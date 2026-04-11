@@ -343,6 +343,50 @@
 
 ---
 
+## U · XSLT Development Environment (2026-04-11)
+
+> **User-requested module:** A fully integrated XSLT workbench with syntax-highlighted editor, Saxon HE transformation engine, and built-in DITA→HTML stylesheet.
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-188 | **As a** DITA architect **I want** an XSLT Workbench window (Ctrl+Shift+X) with a syntax-highlighted XSLT editor **so that** I can write and test XSLT stylesheets without switching tools. | [x] |
+| F-189 | **As a** DITA architect **I want** a side-by-side XML source editor in the workbench **so that** I can write or paste input XML/DITA alongside my stylesheet. | [x] |
+| F-190 | **As a** DITA architect **I want** to run an XSLT transformation and see the output in a result panel **so that** I can immediately test my stylesheet against real DITA content. | [x] |
+| F-191 | **As a** DITA architect **I want** XSLT compile-time validation with line-number error reporting **so that** syntax errors in my stylesheet are flagged precisely. | [x] |
+| F-192 | **As a** DITA architect **I want** to pass named parameters to the XSLT transformation **so that** I can test stylesheets that depend on external settings. | [x] |
+| F-193 | **As a** DITA architect **I want** `xsl:message` output captured and displayed in the workbench console **so that** I can trace execution without opening a separate log. | [x] |
+| F-194 | **As a** DITA architect **I want** to save XSLT transformation output to a file **so that** I can archive or hand off the generated HTML/XML. | [x] |
+| F-195 | **As a** DITA architect **I want** a built-in DITA→HTML stylesheet template that I can load with one click **so that** I can transform any DITA topic to HTML without writing XSLT from scratch. | [x] |
+| F-196 | **As a** DITA architect **I want** the workbench to be non-modal **so that** I can keep it open while continuing to edit the diagram. | [x] |
+| F-197 | **As a** DITA architect **I want** DITA → DITA to HTML (XSLT)… to pre-load the workbench with a detected DITA file from the current project **so that** I can start transforming immediately. | [x] |
+| F-198 | **As a** DITA architect **I want** syntax highlighting for XSLT keywords (`xsl:*`), XML tags, attributes, strings, XPath expressions, comments, and entities **so that** the stylesheet is easy to read. | [x] |
+| F-199 | **As a** DITA architect **I want** to browse for XML and XSLT files from the workbench toolbar **so that** I can load existing files without typing paths. | [x] |
+
+---
+
+## V · Topic Type Import & Extend (2026-04-11)
+
+> **User-requested feature:** When adding a Topic Type, offer an "Import & Extend" mode to browse an existing DITA XSD and place the parsed topic type on the canvas for modification.
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-200 | **As a** DITA architect **I want** the "Add Topic Type" dialog to offer a "Create New" / "Import & Extend existing XSD" radio button choice **so that** I can either design from scratch or start from an existing schema. | [x] |
+| F-201 | **As a** DITA architect **I want** to browse for an existing `.xsd` file and have the tool parse and pre-fill the topic type name, base type, namespace, and element list **so that** I don't need to re-enter information already in the schema. | [x] |
+| F-202 | **As a** DITA architect **I want** the imported topic type to appear on the canvas as a normal editable node **so that** I can add, modify, or remove elements and attributes using the standard properties panel. | [x] |
+
+---
+
+## W � XPath Checker Enhancements (2026-04-11)
+
+> Enhancements requested for XPath workflow: expression syntax check and XML pretty print directly in the checker.
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-203 | **As a** DITA architect **I want** a "Check XPath" action in the XPath Checker **so that** I can validate expression syntax and namespace declarations before evaluating against XML. | [x] |
+| F-204 | **As a** DITA architect **I want** a "Pretty Print XML" action in the XPath Checker **so that** I can normalize indentation and improve readability of input documents before querying. | [x] |
+| F-205 | **As a** DITA architect **I want** XPath syntax check and XML pretty print outcomes shown in the results/status panel **so that** I get immediate feedback without opening additional dialogs. | [x] |
+
+---
 ## Progress Summary
 
 | Category | Total | Done | Remaining |
@@ -367,8 +411,11 @@
 | R · Project File Explorer & Live File Sync | 10 | 10 | 0 |
 | S · Namespace & Tooling Improvements | 2 | 2 | 0 |
 | T · Project Startup, Import & Content Model | 9 | 9 | 0 |
-| **TOTAL** | **187** | **184** | **9** |
+| U · XSLT Development Environment | 12 | 12 | 0 |
+| V · Topic Type Import & Extend | 3 | 3 | 0 |
+| W � XPath Checker Enhancements | 3 | 3 | 0 |
+| **TOTAL** | **205** | **202** | **9** |
 
 ---
 
-_Last updated: 2026-04-10 — T section: F-179 (welcome dialog), F-180 (new project wizard), F-181 (metadata browse button), F-182 (explorer→canvas navigation), F-183 (import XSD), F-184 (import DTD), F-185 (content model builder), F-186 (element attribute editing), F-187 (live sync dir fix). Also marked F-049 [x] (content model builder covers original story)._
+_Last updated: 2026-04-11 � U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._
