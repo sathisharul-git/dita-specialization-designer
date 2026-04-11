@@ -393,14 +393,14 @@
 
 | ID | User Story | Status |
 |----|-----------|--------|
-| F-206 | **As a** XSLT developer **I want** to get XPath suggestions while typing inside `select`, `match`, or `test` attributes **so that** I can write correct XPath expressions quickly without memorizing the XML structure. | [ ] |
-| F-207 | **As a** developer **I want** XPath suggestions to be generated based on the currently loaded XML file **so that** I only see valid and relevant paths (full paths, relative paths, attributes). | [ ] |
-| F-208 | **As a** developer **I want** different suggestions based on where I type (`select`, `match`, `test`) **so that** I get context-relevant XPath expressions detected automatically. | [ ] |
-| F-209 | **As a** developer **I want** suggestions to be filtered dynamically as I type **so that** I can quickly find the correct XPath via partial input (e.g. `//ti` → `//title`). | [ ] |
-| F-210 | **As a** developer **I want** to see how many nodes match a suggested XPath **so that** I can verify correctness before using it, with an option to preview matching nodes. | [ ] |
-| F-211 | **As a** developer **I want** XPath suggestions to integrate with the editor's auto-completion system **so that** it behaves like a modern IDE (dropdown near cursor, keyboard navigation, Enter to insert). | [ ] |
-| F-212 | **As a** developer **I want** suggestions to appear within 200ms without UI freezing **so that** my coding experience remains smooth (XML parsed once and cached). | [ ] |
-| F-213 | **As a** developer **I want** the system to handle invalid XML or XPath gracefully **so that** I am not blocked while working (warning shown, editor remains usable). | [ ] |
+| F-206 | **As a** XSLT developer **I want** to get XPath suggestions while typing inside `select`, `match`, or `test` attributes **so that** I can write correct XPath expressions quickly without memorizing the XML structure. | [x] |
+| F-207 | **As a** developer **I want** XPath suggestions to be generated based on the currently loaded XML file **so that** I only see valid and relevant paths (full paths, relative paths, attributes). | [x] |
+| F-208 | **As a** developer **I want** different suggestions based on where I type (`select`, `match`, `test`) **so that** I get context-relevant XPath expressions detected automatically. | [x] |
+| F-209 | **As a** developer **I want** suggestions to be filtered dynamically as I type **so that** I can quickly find the correct XPath via partial input (e.g. `//ti` → `//title`). | [x] |
+| F-210 | **As a** developer **I want** to see how many nodes match a suggested XPath **so that** I can verify correctness before using it, with an option to preview matching nodes. | [x] |
+| F-211 | **As a** developer **I want** XPath suggestions to integrate with the editor's auto-completion system **so that** it behaves like a modern IDE (dropdown near cursor, keyboard navigation, Enter to insert). | [x] |
+| F-212 | **As a** developer **I want** suggestions to appear within 200ms without UI freezing **so that** my coding experience remains smooth (XML parsed once and cached). | [x] |
+| F-213 | **As a** developer **I want** the system to handle invalid XML or XPath gracefully **so that** I am not blocked while working (warning shown, editor remains usable). | [x] |
 
 ---
 
@@ -431,8 +431,8 @@
 | U · XSLT Development Environment | 12 | 12 | 0 |
 | V · Topic Type Import & Extend | 3 | 3 | 0 |
 | W � XPath Checker Enhancements | 3 | 3 | 0 |
-| X · XPath Smart Suggestions in XSLT Editor | 8 | 0 | 8 |
-| **TOTAL** | **213** | **202** | **17** |
+| X · XPath Smart Suggestions in XSLT Editor | 8 | 8 | 0 |
+| **TOTAL** | **213** | **210** | **9** |
 
 ---
 
