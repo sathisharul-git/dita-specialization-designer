@@ -1,7 +1,9 @@
 package com.ditadesigner.xslt;
 
 import com.ditadesigner.util.LogService;
+import com.ditadesigner.xml.XmlCoreService;
 import javafx.application.Platform;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
@@ -10,6 +12,7 @@ import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
 import java.io.File;
 import java.io.InputStream;
@@ -17,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -69,8 +73,11 @@ public class XsltUIController {
             """;
 
     // ── Services ──────────────────────────────────────────────────────────────
-    private final XsltExecutionService  executionService  = new XsltExecutionService();
-    private final XsltValidationService validationService = new XsltValidationService();
+    private final XsltExecutionService   executionService   = new XsltExecutionService();
+    private final XsltValidationService  validationService  = new XsltValidationService();
+    private final XPathSuggestionService suggestionService  =
+            new XPathSuggestionService(new XmlCoreService());
+    private final XPathSuggestionPopup   suggestionPopup    = new XPathSuggestionPopup();
 
     // ── State ─────────────────────────────────────────────────────────────────
     private final Stage ownerStage;
@@ -247,7 +254,84 @@ public class XsltUIController {
 
         SplitPane mainSplit = new SplitPane(leftSplit, outputPane);
         mainSplit.setDividerPositions(0.50);
+
+        installSuggestions();
         return mainSplit;
+    }
+
+    // ── XPath smart suggestions ────────────────────────────────────────────────
+
+    /**
+     * Wire the XML editor, XSLT editor, suggestion service, and popup together.
+     * Called once after both editors are constructed.
+     */
+    private void installSuggestions() {
+        // Rebuild XML structure model in background whenever XML content changes
+        xmlEditor.getCodeArea().textProperty().addListener((obs, old, text) -> {
+            if (text != null && !text.isBlank()) {
+                executor.submit(() -> suggestionService.updateXml(text));
+            }
+        });
+
+        // Trigger suggestions on every caret move in the XSLT editor
+        xsltEditor.getCodeArea().caretPositionProperty().addListener(
+                (obs, old, pos) -> triggerSuggestions(
+                        xsltEditor.getCodeArea().getText(), pos.intValue()));
+
+        // Accept: replace the typed prefix in the editor with the selected completion
+        suggestionPopup.setOnAccept(completion -> {
+            var ca       = xsltEditor.getCodeArea();
+            int caretPos = ca.getCaretPosition();
+            String text  = ca.getText();
+            XPathSuggestionService.SuggestionContext ctx =
+                    suggestionService.detectContext(text, caretPos);
+            int start = caretPos - ctx.prefix().length();
+            if (start >= 0) ca.replaceText(start, caretPos, completion);
+        });
+
+        // Match count: evaluate on background thread, post result to popup label
+        suggestionPopup.setMatchCounter((expr, callback) ->
+                executor.submit(() -> callback.accept(suggestionService.countMatches(expr))));
+
+        // Keyboard: ↑ ↓ Enter Tab Escape are intercepted when popup is open
+        suggestionPopup.installKeyHandler(xsltEditor.getCodeArea());
+    }
+
+    /**
+     * Detect context at the current caret position and show or hide the popup.
+     * Must be called on the FX thread (called from a property listener).
+     */
+    private void triggerSuggestions(String xsltText, int caretPos) {
+        if (!suggestionService.hasModel()) { suggestionPopup.hide(); return; }
+
+        XPathSuggestionService.SuggestionContext ctx =
+                suggestionService.detectContext(xsltText, caretPos);
+
+        if (ctx.context() == XmlStructureModel.AttributeContext.NONE) {
+            suggestionPopup.hide();
+            return;
+        }
+
+        List<String> suggestions = suggestionService.getSuggestions(ctx.context(), ctx.prefix());
+        showSuggestionPopup(suggestions);
+    }
+
+    /** Position and display the suggestion popup below the editor caret. */
+    private void showSuggestionPopup(List<String> suggestions) {
+        if (suggestions.isEmpty()) { suggestionPopup.hide(); return; }
+
+        var ca = xsltEditor.getCodeArea();
+        if (ca.getScene() == null) return;
+        Window window = ca.getScene().getWindow();
+
+        Optional<Bounds> boundsOpt = ca.caretBoundsProperty().getValue();
+        if (boundsOpt.isEmpty()) { suggestionPopup.hide(); return; }
+
+        // caretBounds are in the CodeArea's local coordinate space — convert to screen
+        Bounds screen = ca.localToScreen(boundsOpt.get());
+        if (screen == null) { suggestionPopup.hide(); return; }
+
+        suggestionPopup.show(window, screen.getMinX(), screen.getMaxY() + 2, suggestions);
     }
 
     private TitledPane editorPane(String title, javafx.scene.Node content) {

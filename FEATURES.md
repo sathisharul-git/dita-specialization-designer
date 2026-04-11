@@ -376,7 +376,7 @@
 
 ---
 
-## W � XPath Checker Enhancements (2026-04-11)
+## W � XPath Checker Enhancements (2026-04-11)
 
 > Enhancements requested for XPath workflow: expression syntax check and XML pretty print directly in the checker.
 
@@ -387,6 +387,23 @@
 | F-205 | **As a** DITA architect **I want** XPath syntax check and XML pretty print outcomes shown in the results/status panel **so that** I get immediate feedback without opening additional dialogs. | [x] |
 
 ---
+## X · XPath Smart Suggestions in XSLT Editor (2026-04-11)
+
+> **Epic:** Intelligent XPath auto-completion inside the XSLT workbench editor, driven by the currently loaded XML file structure.
+
+| ID | User Story | Status |
+|----|-----------|--------|
+| F-206 | **As a** XSLT developer **I want** to get XPath suggestions while typing inside `select`, `match`, or `test` attributes **so that** I can write correct XPath expressions quickly without memorizing the XML structure. | [ ] |
+| F-207 | **As a** developer **I want** XPath suggestions to be generated based on the currently loaded XML file **so that** I only see valid and relevant paths (full paths, relative paths, attributes). | [ ] |
+| F-208 | **As a** developer **I want** different suggestions based on where I type (`select`, `match`, `test`) **so that** I get context-relevant XPath expressions detected automatically. | [ ] |
+| F-209 | **As a** developer **I want** suggestions to be filtered dynamically as I type **so that** I can quickly find the correct XPath via partial input (e.g. `//ti` → `//title`). | [ ] |
+| F-210 | **As a** developer **I want** to see how many nodes match a suggested XPath **so that** I can verify correctness before using it, with an option to preview matching nodes. | [ ] |
+| F-211 | **As a** developer **I want** XPath suggestions to integrate with the editor's auto-completion system **so that** it behaves like a modern IDE (dropdown near cursor, keyboard navigation, Enter to insert). | [ ] |
+| F-212 | **As a** developer **I want** suggestions to appear within 200ms without UI freezing **so that** my coding experience remains smooth (XML parsed once and cached). | [ ] |
+| F-213 | **As a** developer **I want** the system to handle invalid XML or XPath gracefully **so that** I am not blocked while working (warning shown, editor remains usable). | [ ] |
+
+---
+
 ## Progress Summary
 
 | Category | Total | Done | Remaining |
@@ -413,9 +430,10 @@
 | T · Project Startup, Import & Content Model | 9 | 9 | 0 |
 | U · XSLT Development Environment | 12 | 12 | 0 |
 | V · Topic Type Import & Extend | 3 | 3 | 0 |
-| W � XPath Checker Enhancements | 3 | 3 | 0 |
-| **TOTAL** | **205** | **202** | **9** |
+| W � XPath Checker Enhancements | 3 | 3 | 0 |
+| X · XPath Smart Suggestions in XSLT Editor | 8 | 0 | 8 |
+| **TOTAL** | **213** | **202** | **17** |
 
 ---
 
-_Last updated: 2026-04-11 � U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._
+_Last updated: 2026-04-11 (X section: F-206 to F-213 XPath Smart Suggestions in XSLT Editor) — � U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._
