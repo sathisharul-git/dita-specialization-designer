@@ -1,0 +1,47 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run App (Gradle)",
+            "type": "java",
+            "request": "launch",
+            "mainClass": "com.ditadesigner.App",
+            "projectName": "dita-specialization-designer",
+            "vmArgs": "-Xms256m -Xmx512m --add-opens javafx.graphics/javafx.scene=ALL-UNNAMED --add-opens javafx.controls/javafx.scene.control=ALL-UNNAMED -Dfile.encoding=UTF-8",
+            "env": {
+                "JAVA_TOOL_OPTIONS": ""
+            }
+        },
+        {
+            "name": "Debug App (Gradle attach)",
+            "type": "java",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5005,
+            "timeout": 30000
+        },
+        {
+            "name": "Run Tests (All)",
+            "type": "java",
+            "request": "launch",
+            "mainClass": "org.junit.platform.console.ConsoleLauncher",
+            "projectName": "dita-specialization-designer",
+            "args": "--scan-classpath"
+        },
+        {
+            "name": "Debug Current Test File",
+            "type": "java",
+            "request": "launch",
+            "mainClass": "${file}",
+            "projectName": "dita-specialization-designer"
+        },
+        {
+            "name": "Generate Sample Output",
+            "type": "java",
+            "request": "launch",
+            "mainClass": "com.ditadesigner.SampleGenerator",
+            "projectName": "dita-specialization-designer",
+            "vmArgs": "-Dfile.encoding=UTF-8"
+        }
+    ]
+}

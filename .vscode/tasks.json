@@ -1,0 +1,118 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Gradle: Build",
+            "type": "shell",
+            "command": "./gradlew build -x test",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": "$java"
+        },
+        {
+            "label": "Gradle: Run",
+            "type": "shell",
+            "command": "./gradlew run",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Gradle: Run (Debug mode)",
+            "type": "shell",
+            "command": "./gradlew run --debug-jvm",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": true
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "."
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Starting Gradle Daemon",
+                    "endsPattern": "Listening for transport dt_socket"
+                }
+            }
+        },
+        {
+            "label": "Gradle: Test (All)",
+            "type": "shell",
+            "command": "./gradlew test",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": "$java"
+        },
+        {
+            "label": "Gradle: Test (Single class)",
+            "type": "shell",
+            "command": "./gradlew test --tests \"${input:testClass}\"",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": "$java"
+        },
+        {
+            "label": "Gradle: Clean",
+            "type": "shell",
+            "command": "./gradlew clean",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Gradle: CI Pipeline",
+            "type": "shell",
+            "command": "./gradlew ci",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": "$java"
+        },
+        {
+            "label": "Gradle: Generate Sample",
+            "type": "shell",
+            "command": "./gradlew generateSample",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testClass",
+            "type": "promptString",
+            "description": "Test class name (e.g. com.ditadesigner.XsltTest)",
+            "default": "com.ditadesigner.GeneratorTest"
+        }
+    ]
+}

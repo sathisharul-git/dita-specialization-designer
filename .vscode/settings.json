@@ -1,0 +1,21 @@
+{
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.sources.organizeImports.starThreshold": 5,
+    "java.sources.organizeImports.staticStarThreshold": 3,
+    "java.test.config": {
+        "vmArgs": [
+            "-Xmx512m",
+            "-Dfile.encoding=UTF-8"
+        ]
+    },
+    "gradle.nestedProjects": false,
+    "gradle.javaDebug": {
+        "tasks": ["run"],
+        "clean": true
+    },
+    "editor.formatOnSave": false,
+    "[java]": {
+        "editor.suggest.snippetsPreventQuickSuggestions": false
+    }
+}

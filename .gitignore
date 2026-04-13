@@ -6,7 +6,12 @@ build/
 # IDE
 .idea/
 *.iml
-.vscode/
+# Track shared VS Code config; ignore personal-only files
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+!.vscode/extensions.json
 *.class
 
 # OS
