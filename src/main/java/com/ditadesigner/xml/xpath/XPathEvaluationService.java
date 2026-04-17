@@ -1,11 +1,21 @@
-package com.ditadesigner.xpath;
+package com.ditadesigner.xml.xpath;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import com.ditadesigner.util.LogService;
 import com.ditadesigner.xml.XmlCoreService;
 import com.ditadesigner.xml.XmlParseResult;
-import net.sf.saxon.s9api.*;
 
-import java.util.*;
+import net.sf.saxon.s9api.Processor;
+import net.sf.saxon.s9api.SaxonApiException;
+import net.sf.saxon.s9api.XPathCompiler;
+import net.sf.saxon.s9api.XPathExecutable;
+import net.sf.saxon.s9api.XPathSelector;
+import net.sf.saxon.s9api.XdmItem;
+import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmValue;
 
 /**
  * Evaluates XPath 2.0/3.1 expressions against an XML document using Saxon HE.

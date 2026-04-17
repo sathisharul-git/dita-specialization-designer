@@ -2,33 +2,49 @@ package com.ditadesigner.xslt;
 
 import com.ditadesigner.util.LogService;
 import com.ditadesigner.xml.XmlCoreService;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
+import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.util.Duration;
 import org.fxmisc.richtext.CodeArea;
+import org.xml.sax.Attributes;
+import org.xml.sax.helpers.DefaultHandler;
 
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.prefs.Preferences;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Controller for the XSLT Workbench window.
@@ -49,6 +65,17 @@ import java.util.regex.Pattern;
  * <p>Transforms run on a background daemon thread so the UI stays responsive.
  */
 public class XsltUIController {
+
+    enum MessageType { ERROR, WARNING, INFO, XSL_MESSAGE }
+
+    record MessageEntry(MessageType type, int line, String text, Instant timestamp) {}
+
+    record ParamEntry(SimpleStringProperty name, SimpleStringProperty value) {
+        ParamEntry(String n, String v) { this(new SimpleStringProperty(n), new SimpleStringProperty(v)); }
+    }
+
+    private static final DateTimeFormatter TS_FMT =
+            DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
 
     private static final LogService log = LogService.getInstance();
 
@@ -96,22 +123,50 @@ public class XsltUIController {
     // ── Cached XSLT scan (variables, params, named templates) ────────────────
     private volatile XslVariableScanner.ScanResult cachedScan = XslVariableScanner.ScanResult.EMPTY;
 
+    // ── Preferences keys for recent files ─────────────────────────────────────
+    private static final String PREF_RECENT_XSLT = "recentXslt";
+    private static final String PREF_RECENT_XML  = "recentXml";
+    private static final Preferences PREFS =
+            Preferences.userNodeForPackage(XsltUIController.class);
+
     // ── State ─────────────────────────────────────────────────────────────────
     private final Stage ownerStage;
     private       Stage workbenchStage;
     private       File  currentXmlFile;
     private       File  currentXsltFile;
     private       String lastOutput = "";
+    private       boolean xsltDirty = false;
+
+    // ── F-232: XSLT parameters ────────────────────────────────────────────────
+    private final ObservableList<ParamEntry> xsltParams = FXCollections.observableArrayList();
+    private TableView<ParamEntry>            paramsTable;
+
+    // ── F-236: Auto-run ───────────────────────────────────────────────────────
+    private ToggleButton  autoRunBtn;
+    private final PauseTransition autoRunTimer = new PauseTransition(Duration.millis(800));
 
     // ── UI References ─────────────────────────────────────────────────────────
-    private XsltEditor xmlEditor;
-    private XsltEditor xsltEditor;
-    private XsltEditor outputEditor;
-    private TextField  xmlPathField;
-    private TextField  xsltPathField;
-    private TextArea   messageArea;
-    private Label      statusLabel;
-    private Button     runBtn;
+    private XsltEditor              xmlEditor;
+    private XsltEditor              xsltEditor;
+    private XsltEditor              outputEditor;
+    private TextField               xmlPathField;
+    private TextField               xsltPathField;
+    private ListView<MessageEntry>  messageList;
+    private Label                   statusLabel;
+    private Button                  runBtn;
+
+    // ── F-234: HTML preview ───────────────────────────────────────────────────
+    private javafx.scene.web.WebView webView;
+    private TabPane                  outputTabPane;
+    private static final Pattern     HTML_METHOD_PAT =
+            Pattern.compile("method=[\"'](html|xhtml)[\"']", Pattern.CASE_INSENSITIVE);
+
+    // ── F-235: Find in output ─────────────────────────────────────────────────
+    private HBox         findBar;
+    private TextField    findField;
+    private Label        matchLabel;
+    private List<Integer> matchPositions = new ArrayList<>();
+    private int          currentMatchIdx = 0;
 
     // ── Background thread ─────────────────────────────────────────────────────
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
@@ -161,10 +216,29 @@ public class XsltUIController {
         stage.setHeight(820);
         stage.setMinWidth(800);
         stage.setMinHeight(500);
-        stage.setOnCloseRequest(e -> executor.shutdown());
+        stage.setOnCloseRequest(event -> {
+            if (xsltDirty) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Unsaved Changes");
+                alert.setHeaderText("The XSLT stylesheet has unsaved changes.");
+                alert.setContentText("Save before closing?");
+                alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO, ButtonType.CANCEL);
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.isEmpty() || result.get() == ButtonType.CANCEL) {
+                    event.consume();
+                    return;
+                } else if (result.get() == ButtonType.YES) {
+                    saveXslt();
+                }
+            }
+            executor.shutdown();
+        });
+
+        autoRunTimer.setOnFinished(e -> runTransform());
 
         BorderPane root = new BorderPane();
-        root.setTop(buildToolBar());
+        VBox topArea = new VBox(buildToolBar(), buildParamPanel());
+        root.setTop(topArea);
         root.setCenter(buildEditorArea());
         root.setBottom(buildMessagePanel());
 
@@ -185,6 +259,49 @@ public class XsltUIController {
                         KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN),
                 this::openXPathBuilder);
 
+        // Keyboard-first workflow shortcuts (Section Z2)
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),
+                this::runTransform);
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.E, KeyCombination.CONTROL_DOWN),
+                this::validateXslt);
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN),
+                this::saveXslt);
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.SLASH, KeyCombination.CONTROL_DOWN),
+                () -> xsltEditor.toggleLineComment());
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN),
+                () -> xsltEditor.duplicateCurrentLine());
+
+        // F-235: Ctrl+F → show Find-in-Output bar when XML Output tab is active
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),
+                () -> {
+                    if (outputTabPane != null
+                            && outputTabPane.getSelectionModel().getSelectedIndex() == 0) {
+                        findBar.setVisible(true);
+                        findBar.setManaged(true);
+                        findField.requestFocus();
+                    }
+                });
+
+        // Editor ergonomics shortcuts (Section Z5)
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.CLOSE_BRACKET, KeyCombination.CONTROL_DOWN),
+                () -> xsltEditor.indentSelection());
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.OPEN_BRACKET, KeyCombination.CONTROL_DOWN),
+                () -> xsltEditor.dedentSelection());
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.EQUALS, KeyCombination.CONTROL_DOWN),
+                () -> xsltEditor.increaseFontSize());
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.MINUS, KeyCombination.CONTROL_DOWN),
+                () -> xsltEditor.decreaseFontSize());
+
         return stage;
     }
 
@@ -197,16 +314,26 @@ public class XsltUIController {
         xmlPathField.setEditable(false);
         HBox.setHgrow(xmlPathField, Priority.ALWAYS);
 
-        Button browseXmlBtn = new Button("Browse XML…");
+        SplitMenuButton browseXmlBtn = new SplitMenuButton();
+        browseXmlBtn.setText("Browse XML…");
         browseXmlBtn.setOnAction(e -> browseXml());
+        Menu recentXmlMenu = new Menu("Recent XML Files");
+        recentXmlMenu.setOnShowing(e -> populateRecentMenu(recentXmlMenu, PREF_RECENT_XML,
+                path -> loadXmlFile(new File(path))));
+        browseXmlBtn.getItems().add(recentXmlMenu);
 
         xsltPathField = new TextField();
         xsltPathField.setPromptText("XSLT stylesheet…");
         xsltPathField.setEditable(false);
         HBox.setHgrow(xsltPathField, Priority.ALWAYS);
 
-        Button browseXsltBtn = new Button("Browse XSLT…");
+        SplitMenuButton browseXsltBtn = new SplitMenuButton();
+        browseXsltBtn.setText("Browse XSLT…");
         browseXsltBtn.setOnAction(e -> browseXslt());
+        Menu recentXsltMenu = new Menu("Recent XSLT Files");
+        recentXsltMenu.setOnShowing(e -> populateRecentMenu(recentXsltMenu, PREF_RECENT_XSLT,
+                path -> loadXsltFile(new File(path))));
+        browseXsltBtn.getItems().add(recentXsltMenu);
 
         Button ditaHtmlBtn = new Button("Use DITA→HTML Template");
         ditaHtmlBtn.setStyle("-fx-font-size: 10px;");
@@ -227,11 +354,17 @@ public class XsltUIController {
         runBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; "
                         + "-fx-font-weight: bold; -fx-padding: 5 14 5 14;");
         runBtn.setOnAction(e -> runTransform());
+        Tooltip.install(runBtn, new Tooltip("Run transformation (Ctrl+R)"));
 
         Button validateBtn = new Button("✔  Validate XSLT");
         validateBtn.setStyle("-fx-background-color: #2980b9; -fx-text-fill: white; "
                              + "-fx-padding: 5 12 5 12;");
         validateBtn.setOnAction(e -> validateXslt());
+        Tooltip.install(validateBtn, new Tooltip("Validate XSLT stylesheet (Ctrl+E)"));
+
+        Button saveXsltBtn = new Button("Save XSLT");
+        saveXsltBtn.setOnAction(e -> saveXslt());
+        Tooltip.install(saveXsltBtn, new Tooltip("Save XSLT editor content (Ctrl+S)"));
 
         Button saveOutputBtn = new Button("Save Output…");
         saveOutputBtn.setOnAction(e -> saveOutput());
@@ -250,12 +383,18 @@ public class XsltUIController {
                 "Open visual XPath Builder (Ctrl+Shift+P)"));
         xpathBuilderBtn.setOnAction(e -> openXPathBuilder());
 
+        autoRunBtn = new ToggleButton("Auto-run");
+        Tooltip.install(autoRunBtn, new Tooltip(
+                "Automatically re-run the transform 800 ms after each XSLT edit"));
+
         HBox actionRow = new HBox(8,
-                runBtn, validateBtn,
+                runBtn, validateBtn, saveXsltBtn,
                 new Separator(Orientation.VERTICAL),
                 saveOutputBtn, clearBtn,
                 new Separator(Orientation.VERTICAL),
                 xpathBuilderBtn,
+                new Separator(Orientation.VERTICAL),
+                autoRunBtn,
                 statusLabel);
         actionRow.setPadding(new Insets(5, 8, 5, 8));
         actionRow.setStyle("-fx-alignment: CENTER_LEFT;");
@@ -264,6 +403,50 @@ public class XsltUIController {
         toolbar.setStyle("-fx-background-color: #f5f5f5; "
                          + "-fx-border-color: #d0d0d0; -fx-border-width: 0 0 1 0;");
         return toolbar;
+    }
+
+    // ── Parameter panel (F-232) ────────────────────────────────────────────────
+
+    private TitledPane buildParamPanel() {
+        TableColumn<ParamEntry, String> nameCol = new TableColumn<>("Name");
+        nameCol.setCellValueFactory(cd -> cd.getValue().name());
+        nameCol.setCellFactory(TextFieldTableCell.forTableColumn());
+        nameCol.setOnEditCommit(e -> e.getRowValue().name().set(e.getNewValue()));
+        nameCol.setPrefWidth(180);
+
+        TableColumn<ParamEntry, String> valueCol = new TableColumn<>("Value");
+        valueCol.setCellValueFactory(cd -> cd.getValue().value());
+        valueCol.setCellFactory(TextFieldTableCell.forTableColumn());
+        valueCol.setOnEditCommit(e -> e.getRowValue().value().set(e.getNewValue()));
+        valueCol.setPrefWidth(300);
+
+        paramsTable = new TableView<>(xsltParams);
+        paramsTable.setEditable(true);
+        paramsTable.getColumns().addAll(nameCol, valueCol);
+        paramsTable.setPrefHeight(120);
+        paramsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        Button addBtn = new Button("Add");
+        addBtn.setOnAction(e -> {
+            xsltParams.add(new ParamEntry("", ""));
+            paramsTable.getSelectionModel().selectLast();
+        });
+
+        Button removeBtn = new Button("Remove");
+        removeBtn.setOnAction(e -> {
+            ParamEntry sel = paramsTable.getSelectionModel().getSelectedItem();
+            if (sel != null) xsltParams.remove(sel);
+        });
+
+        HBox buttons = new HBox(6, addBtn, removeBtn);
+        buttons.setPadding(new Insets(4, 0, 2, 0));
+
+        VBox content = new VBox(4, paramsTable, buttons);
+        content.setPadding(new Insets(6));
+
+        TitledPane pane = new TitledPane("Parameters", content);
+        pane.setExpanded(false);
+        return pane;
     }
 
     // ── Editor area ────────────────────────────────────────────────────────────
@@ -281,9 +464,20 @@ public class XsltUIController {
         leftSplit.setOrientation(Orientation.VERTICAL);
         leftSplit.setDividerPositions(0.40);
 
-        // Right: output (read-only)
+        // Right: output (read-only) with HTML preview tab and find bar
         outputEditor = new XsltEditor(true);
-        TitledPane outputPane = editorPane("Output Preview", outputEditor);
+        webView      = new javafx.scene.web.WebView();
+        Tab xmlTab   = new Tab("XML Output",    outputEditor);
+        Tab htmlTab  = new Tab("HTML Preview",  webView);
+        xmlTab.setClosable(false);
+        htmlTab.setClosable(false);
+        outputTabPane = new TabPane(xmlTab, htmlTab);
+        VBox.setVgrow(outputTabPane, Priority.ALWAYS);
+
+        findBar = buildFindBar();
+        VBox outputArea = new VBox(outputTabPane, findBar);
+        VBox.setVgrow(outputArea, Priority.ALWAYS);
+        TitledPane outputPane = editorPane("Output Preview", outputArea);
 
         SplitPane mainSplit = new SplitPane(leftSplit, outputPane);
         mainSplit.setDividerPositions(0.50);
@@ -306,9 +500,24 @@ public class XsltUIController {
             }
         });
 
-        // Re-scan XSLT for variables/params/named-templates on text change
+        // Re-scan XSLT for variables/params/named-templates on text change; track dirty state
         xsltEditor.getCodeArea().textProperty().addListener((obs, old, text) -> {
-            if (text != null) cachedScan = XslVariableScanner.scan(text);
+            if (text != null) {
+                cachedScan = XslVariableScanner.scan(text);
+                if (!xsltDirty) {
+                    xsltDirty = true;
+                    if (workbenchStage != null) {
+                        String title = workbenchStage.getTitle();
+                        if (!title.startsWith("* ")) {
+                            workbenchStage.setTitle("* " + title);
+                        }
+                    }
+                }
+                if (autoRunBtn != null && autoRunBtn.isSelected()) {
+                    autoRunTimer.stop();
+                    autoRunTimer.playFromStart();
+                }
+            }
         });
 
         // Trigger suggestions on every caret move in the XSLT editor
@@ -488,27 +697,135 @@ public class XsltUIController {
         return pane;
     }
 
+    // ── F-235: Find-in-Output bar ─────────────────────────────────────────────
+
+    private HBox buildFindBar() {
+        findField  = new TextField();
+        findField.setPromptText("Find in output…");
+        findField.setPrefWidth(220);
+        matchLabel = new Label();
+        Button btnPrev  = new Button("▲");
+        Button btnNext  = new Button("▼");
+        Button btnClose = new Button("✕");
+
+        findField.textProperty().addListener((obs, o, term) -> {
+            matchPositions.clear();
+            currentMatchIdx = 0;
+            if (!term.isBlank()) {
+                String hay  = outputEditor.getCodeArea().getText().toLowerCase();
+                String needle = term.toLowerCase();
+                int idx = 0;
+                while ((idx = hay.indexOf(needle, idx)) >= 0) {
+                    matchPositions.add(idx);
+                    idx += needle.length();
+                }
+            }
+            matchLabel.setText(matchPositions.isEmpty() ? "" : "1 / " + matchPositions.size());
+            if (!matchPositions.isEmpty()) highlightMatch(0, term.length());
+        });
+
+        btnNext.setOnAction(e -> {
+            if (matchPositions.isEmpty()) return;
+            currentMatchIdx = (currentMatchIdx + 1) % matchPositions.size();
+            highlightMatch(currentMatchIdx, findField.getText().length());
+        });
+        btnPrev.setOnAction(e -> {
+            if (matchPositions.isEmpty()) return;
+            currentMatchIdx = (currentMatchIdx - 1 + matchPositions.size()) % matchPositions.size();
+            highlightMatch(currentMatchIdx, findField.getText().length());
+        });
+        btnClose.setOnAction(e -> {
+            findBar.setVisible(false);
+            findBar.setManaged(false);
+            outputEditor.getCodeArea().deselect();
+        });
+        findField.setOnKeyPressed(ke -> {
+            if (ke.getCode() == javafx.scene.input.KeyCode.ESCAPE) btnClose.fire();
+        });
+
+        HBox bar = new HBox(4, new Label("Find:"), findField, btnPrev, btnNext, matchLabel, btnClose);
+        bar.setPadding(new Insets(3, 6, 3, 6));
+        bar.setVisible(false);
+        bar.setManaged(false);
+        return bar;
+    }
+
+    private void highlightMatch(int idx, int termLen) {
+        if (matchPositions.isEmpty()) return;
+        int start = matchPositions.get(idx);
+        outputEditor.getCodeArea().selectRange(start, start + termLen);
+        outputEditor.getCodeArea().requestFollowCaret();
+        matchLabel.setText((idx + 1) + " / " + matchPositions.size());
+    }
+
     // ── Message / error panel ──────────────────────────────────────────────────
 
     private VBox buildMessagePanel() {
-        messageArea = new TextArea();
-        messageArea.setEditable(false);
-        messageArea.setPrefHeight(130);
-        messageArea.setMaxHeight(200);
-        messageArea.getStyleClass().add("xslt-message-area");
-        messageArea.setStyle("-fx-font-family: 'Consolas', 'Courier New', monospace; "
-                             + "-fx-font-size: 11px; -fx-control-inner-background: #1e1e1e; "
-                             + "-fx-text-fill: #ccc;");
+        messageList = new ListView<>();
+        messageList.setPrefHeight(130);
+        messageList.setMaxHeight(200);
+        messageList.setCellFactory(lv -> new MessageCell());
 
         Label hdr = new Label("Messages / Errors");
         hdr.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; "
                      + "-fx-padding: 3 6 3 6; -fx-text-fill: #333;");
 
-        VBox panel = new VBox(3, hdr, messageArea);
+        Button copyBtn = new Button("Copy");
+        copyBtn.setStyle("-fx-font-size: 10px; -fx-padding: 2 8 2 8;");
+        copyBtn.setOnAction(e -> {
+            String all = messageList.getItems().stream()
+                    .map(en -> {
+                        String lineTag = en.line() > 0 ? " L" + en.line() : "";
+                        return "[" + TS_FMT.format(en.timestamp()) + " "
+                                + en.type() + lineTag + "] " + en.text();
+                    })
+                    .collect(Collectors.joining("\n"));
+            ClipboardContent cc = new ClipboardContent();
+            cc.putString(all);
+            javafx.scene.input.Clipboard.getSystemClipboard().setContent(cc);
+        });
+
+        HBox header = new HBox(6, hdr, copyBtn);
+        header.setStyle("-fx-alignment: CENTER_LEFT; -fx-padding: 2 6 2 6;");
+
+        VBox panel = new VBox(3, header, messageList);
         panel.setStyle("-fx-border-color: #ccc; -fx-border-width: 1 0 0 0; "
                        + "-fx-background-color: #f9f9f9;");
-        VBox.setVgrow(messageArea, Priority.ALWAYS);
+        VBox.setVgrow(messageList, Priority.ALWAYS);
         return panel;
+    }
+
+    private class MessageCell extends ListCell<MessageEntry> {
+        @Override
+        protected void updateItem(MessageEntry entry, boolean empty) {
+            super.updateItem(entry, empty);
+            if (empty || entry == null) {
+                setText(null);
+                setStyle(null);
+                setOnMouseClicked(null);
+                return;
+            }
+            setText("[" + TS_FMT.format(entry.timestamp()) + "] " + entry.text());
+            String colour = switch (entry.type()) {
+                case ERROR       -> "#f44747";
+                case WARNING     -> "#cca700";
+                case INFO        -> "#9cdcfe";
+                case XSL_MESSAGE -> "#4ec9b0";
+            };
+            setStyle("-fx-font-family: 'Consolas','Courier New',monospace; "
+                     + "-fx-font-size: 11px; -fx-text-fill: " + colour + "; "
+                     + "-fx-background-color: #1e1e1e;");
+            if (entry.line() > 0) {
+                setOnMouseClicked(ev -> {
+                    CodeArea ca = xsltEditor.getCodeArea();
+                    ca.showParagraphAtTop(Math.max(0, entry.line() - 1));
+                    ca.moveTo(entry.line() - 1, 0);
+                    ca.requestFocus();
+                });
+            } else {
+                setOnMouseClicked(null);
+            }
+        }
     }
 
     // ── Actions ────────────────────────────────────────────────────────────────
@@ -539,6 +856,7 @@ public class XsltUIController {
             currentXmlFile = f;
             xmlPathField.setText(f.getAbsolutePath());
             xmlEditor.setText(Files.readString(f.toPath(), StandardCharsets.UTF_8));
+            saveRecentFile(PREF_RECENT_XML, f.getAbsolutePath());
             setStatus("XML loaded: " + f.getName());
             log.log("[XSLT] Loaded XML: " + f.getAbsolutePath());
         } catch (Exception ex) {
@@ -551,6 +869,8 @@ public class XsltUIController {
             currentXsltFile = f;
             xsltPathField.setText(f.getAbsolutePath());
             xsltEditor.setText(Files.readString(f.toPath(), StandardCharsets.UTF_8));
+            saveRecentFile(PREF_RECENT_XSLT, f.getAbsolutePath());
+            clearDirty();
             setStatus("XSLT loaded: " + f.getName());
             log.log("[XSLT] Loaded stylesheet: " + f.getAbsolutePath());
         } catch (Exception ex) {
@@ -580,6 +900,7 @@ public class XsltUIController {
         if (xmlFile == null) { appendMessage("ERROR: XML input is empty. Open a file or type XML."); return; }
         if (xsltFile == null) { appendMessage("ERROR: XSLT stylesheet is empty. Open a file or use the editor."); return; }
 
+        xsltEditor.clearErrorMarkers();
         setStatus("Running transformation…");
         appendMessage("── Transform started ──────────────────────────────");
         outputEditor.clear();
@@ -588,27 +909,87 @@ public class XsltUIController {
         final File xml  = xmlFile;
         final File xslt = xsltFile;
 
-        executor.submit(() -> {
-            XsltExecutionService.TransformResult result =
-                    executionService.transform(xml, xslt, Map.of());
+        Map<String, String> params = xsltParams.stream()
+                .filter(p -> !p.name().get().isBlank())
+                .collect(Collectors.toMap(p -> p.name().get(), p -> p.value().get(),
+                        (a, b) -> b));
 
+        executor.submit(() -> {
+            // Live xsl:message callback — each message gets its own teal row immediately
+            XsltExecutionService.TransformResult result =
+                    executionService.transform(xml, xslt, params,
+                            msgText -> appendEntry(MessageType.XSL_MESSAGE, -1, msgText));
+
+            // Count elements, attributes, and text nodes in the output (if XML)
+            int[] stats = {0, 0, 0}; // [elements, attributes, textNodes]
+            if (result.isSuccess() && result.output() != null && !result.output().isBlank()) {
+                try {
+                    SAXParserFactory spf = SAXParserFactory.newInstance();
+                    spf.setNamespaceAware(true);
+                    SAXParser sp = spf.newSAXParser();
+                    sp.parse(new ByteArrayInputStream(
+                            result.output().getBytes(StandardCharsets.UTF_8)),
+                            new DefaultHandler() {
+                                @Override
+                                public void startElement(String uri, String local,
+                                        String qName, Attributes atts) {
+                                    stats[0]++;
+                                    stats[1] += atts.getLength();
+                                }
+                                @Override
+                                public void characters(char[] ch, int start, int length) {
+                                    if (new String(ch, start, length).isBlank()) return;
+                                    stats[2]++;
+                                }
+                            });
+                } catch (Exception ignored) {
+                    // Output may be non-XML (e.g. plain text / HTML) — skip counts
+                }
+            }
+
+            final int[] finalStats = stats;
             Platform.runLater(() -> {
                 runBtn.setDisable(false);
 
                 if (result.isSuccess()) {
                     lastOutput = result.output();
                     outputEditor.setText(lastOutput);
-                    setStatus("Transform complete. Output: "
-                              + lastOutput.length() + " chars.");
-                    appendMessage("── Transform OK (" + lastOutput.length() + " chars) ─────────");
+                    // F-234: HTML preview tab
+                    boolean isHtml = HTML_METHOD_PAT.matcher(xsltEditor.getText()).find();
+                    webView.getEngine().loadContent(isHtml ? lastOutput : "", "text/html");
+                    // F-248: status bar with element/attribute/text counts and elapsed time
+                    String statMsg;
+                    if (finalStats[0] > 0) {
+                        statMsg = String.format(
+                                "Transform complete in %dms — %d element(s), %d attribute(s), "
+                                + "%d text node(s) | %d chars output",
+                                result.elapsedMs(), finalStats[0], finalStats[1],
+                                finalStats[2], lastOutput.length());
+                    } else {
+                        statMsg = String.format(
+                                "Transform complete in %dms — %d chars output",
+                                result.elapsedMs(), lastOutput.length());
+                    }
+                    setStatus(statMsg);
+                    appendMessage("── Transform OK (" + result.elapsedMs() + "ms, "
+                            + lastOutput.length() + " chars) ─────────");
                 } else {
                     appendMessage("ERROR: " + result.errorMessage());
                     setStatus("Transform failed.");
                 }
 
+                // Compile-time notices (not xsl:message — those are already dispatched above)
                 if (result.messages() != null && !result.messages().isBlank()) {
-                    appendMessage("── xsl:message / compile notices ──────────────");
-                    appendMessage(result.messages().strip());
+                    for (String line : result.messages().strip().split("\n")) {
+                        String trimmed = line.trim();
+                        if (trimmed.isEmpty()) continue;
+                        if (trimmed.startsWith("[COMPILE]")) {
+                            appendEntry(MessageType.WARNING, -1,
+                                    trimmed.substring("[COMPILE]".length()).trim());
+                        } else {
+                            appendEntry(MessageType.INFO, -1, trimmed);
+                        }
+                    }
                 }
             });
         });
@@ -631,6 +1012,7 @@ public class XsltUIController {
                 if (errors.isEmpty()) {
                     appendMessage("OK — stylesheet is valid.");
                     setStatus("Validation passed.");
+                    xsltEditor.clearErrorMarkers();
                 } else {
                     long errCount  = errors.stream()
                             .filter(e -> e.getSeverity() == XsltValidationError.Severity.ERROR)
@@ -638,9 +1020,47 @@ public class XsltUIController {
                     long warnCount = errors.size() - errCount;
                     errors.forEach(e -> appendMessage(e.toString()));
                     setStatus("Validation: " + errCount + " error(s), " + warnCount + " warning(s).");
+                    xsltEditor.setErrorMarkers(errors);
                 }
             });
         });
+    }
+
+    private void saveXslt() {
+        String content = xsltEditor.getText();
+        if (content.isBlank()) {
+            appendMessage("Nothing to save — XSLT editor is empty.");
+            return;
+        }
+        if (currentXsltFile != null && currentXsltFile.exists()) {
+            try {
+                Files.writeString(currentXsltFile.toPath(), content, StandardCharsets.UTF_8);
+                clearDirty();
+                setStatus("XSLT saved: " + currentXsltFile.getName());
+                appendMessage("Saved → " + currentXsltFile.getAbsolutePath());
+            } catch (Exception ex) {
+                appendMessage("ERROR saving XSLT: " + ex.getMessage());
+            }
+        } else {
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Save XSLT Stylesheet");
+            fc.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("XSLT Files", "*.xsl", "*.xslt"),
+                    new FileChooser.ExtensionFilter("All Files", "*.*"));
+            fc.setInitialFileName("stylesheet.xsl");
+            File f = fc.showSaveDialog(workbenchStage);
+            if (f == null) return;
+            try {
+                Files.writeString(f.toPath(), content, StandardCharsets.UTF_8);
+                currentXsltFile = f;
+                xsltPathField.setText(f.getAbsolutePath());
+                clearDirty();
+                setStatus("XSLT saved: " + f.getName());
+                appendMessage("Saved → " + f.getAbsolutePath());
+            } catch (Exception ex) {
+                appendMessage("ERROR saving XSLT: " + ex.getMessage());
+            }
+        }
     }
 
     private void saveOutput() {
@@ -669,7 +1089,8 @@ public class XsltUIController {
 
     private void clearOutputAndMessages() {
         outputEditor.clear();
-        messageArea.clear();
+        webView.getEngine().loadContent("", "text/html");
+        if (messageList != null) messageList.getItems().clear();
         lastOutput = "";
         setStatus("Cleared.");
     }
@@ -718,8 +1139,67 @@ public class XsltUIController {
     }
 
     private void appendMessage(String msg) {
-        if (messageArea == null) return;
-        messageArea.appendText(msg + "\n");
-        messageArea.setScrollTop(Double.MAX_VALUE);
+        appendEntry(MessageType.INFO, -1, msg);
+    }
+
+    private void appendEntry(MessageType type, int line, String text) {
+        MessageEntry entry = new MessageEntry(type, line, text, Instant.now());
+        Platform.runLater(() -> {
+            if (messageList != null) {
+                messageList.getItems().add(entry);
+                messageList.scrollTo(messageList.getItems().size() - 1);
+            }
+        });
+    }
+
+    // ── Dirty state ────────────────────────────────────────────────────────────
+
+    private void clearDirty() {
+        xsltDirty = false;
+        if (workbenchStage != null) {
+            String title = workbenchStage.getTitle();
+            if (title.startsWith("* ")) {
+                workbenchStage.setTitle(title.substring(2));
+            }
+        }
+    }
+
+    // ── Recent files (Preferences-backed) ─────────────────────────────────────
+
+    private List<String> loadRecentFiles(String key) {
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            String val = PREFS.get(key + "_" + i, null);
+            if (val != null) result.add(val);
+        }
+        return result;
+    }
+
+    private void saveRecentFile(String key, String path) {
+        List<String> list = new ArrayList<>();
+        list.add(path);
+        for (int i = 0; i < 5; i++) {
+            String val = PREFS.get(key + "_" + i, null);
+            if (val != null && !val.equals(path)) list.add(val);
+        }
+        for (int i = 0; i < Math.min(list.size(), 5); i++) {
+            PREFS.put(key + "_" + i, list.get(i));
+        }
+    }
+
+    private void populateRecentMenu(Menu menu, String key, java.util.function.Consumer<String> loader) {
+        menu.getItems().clear();
+        List<String> paths = loadRecentFiles(key);
+        if (paths.isEmpty()) {
+            MenuItem none = new MenuItem("(no recent files)");
+            none.setDisable(true);
+            menu.getItems().add(none);
+        } else {
+            for (String path : paths) {
+                MenuItem item = new MenuItem(path);
+                item.setOnAction(e -> loader.accept(path));
+                menu.getItems().add(item);
+            }
+        }
     }
 }

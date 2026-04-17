@@ -92,6 +92,24 @@
     -fx-fill: #dcdcaa;
 }
 
+/* ── Inline error / warning markers (F-226) ──────────────────────── */
+
+.xsl-error-line {
+    -fx-underline: true;
+    -fx-fill: #f44747;
+}
+
+.xsl-warning-line {
+    -fx-underline: true;
+    -fx-fill: #cca700;
+}
+
+/* ── Matching tag pair highlight (F-244) ─────────────────────────── */
+
+.xsl-tag-match {
+    -fx-background-color: #3a3d41;
+}
+
 /* ── Workbench chrome ─────────────────────────────────────────────── */
 
 /* TitledPane header */

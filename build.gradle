@@ -39,7 +39,8 @@ javafx {
         'javafx.fxml',
         'javafx.graphics',
         'javafx.base',
-        'javafx.swing'
+        'javafx.swing',
+        'javafx.web'
     ]
 }
 
@@ -146,7 +147,7 @@ startScripts {
     doLast {
         windowsScript.text = windowsScript.text.replace(
             ' -classpath "%CLASSPATH%" com.ditadesigner.App %*',
-            ' --module-path "%APP_HOME%\\lib\\javafx-base-21-win.jar;%APP_HOME%\\lib\\javafx-graphics-21-win.jar;%APP_HOME%\\lib\\javafx-controls-21-win.jar;%APP_HOME%\\lib\\javafx-fxml-21-win.jar;%APP_HOME%\\lib\\javafx-swing-21-win.jar" --add-modules javafx.controls,javafx.fxml,javafx.swing -classpath "%CLASSPATH%" com.ditadesigner.App %*'
+            ' --module-path "%APP_HOME%\\lib\\javafx-base-21-win.jar;%APP_HOME%\\lib\\javafx-graphics-21-win.jar;%APP_HOME%\\lib\\javafx-controls-21-win.jar;%APP_HOME%\\lib\\javafx-fxml-21-win.jar;%APP_HOME%\\lib\\javafx-swing-21-win.jar;%APP_HOME%\\lib\\javafx-web-21-win.jar" --add-modules javafx.controls,javafx.fxml,javafx.swing,javafx.web -classpath "%CLASSPATH%" com.ditadesigner.App %*'
         )
 
         unixScript.text = unixScript.text.replace(
@@ -155,8 +156,8 @@ startScripts {
         com.ditadesigner.App \\
         "$@"''',
             '''set -- \\
-        --module-path "$APP_HOME/lib/javafx-base-21-win.jar:$APP_HOME/lib/javafx-graphics-21-win.jar:$APP_HOME/lib/javafx-controls-21-win.jar:$APP_HOME/lib/javafx-fxml-21-win.jar:$APP_HOME/lib/javafx-swing-21-win.jar" \\
-        --add-modules javafx.controls,javafx.fxml,javafx.swing \\
+        --module-path "$APP_HOME/lib/javafx-base-21-win.jar:$APP_HOME/lib/javafx-graphics-21-win.jar:$APP_HOME/lib/javafx-controls-21-win.jar:$APP_HOME/lib/javafx-fxml-21-win.jar:$APP_HOME/lib/javafx-swing-21-win.jar:$APP_HOME/lib/javafx-web-21-win.jar" \\
+        --add-modules javafx.controls,javafx.fxml,javafx.swing,javafx.web \\
         -classpath "$CLASSPATH" \\
         com.ditadesigner.App \\
         "$@"'''

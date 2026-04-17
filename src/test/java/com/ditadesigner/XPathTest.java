@@ -1,9 +1,10 @@
 package com.ditadesigner;
 
 import com.ditadesigner.xml.XmlCoreService;
-import com.ditadesigner.xpath.XPathEvaluationService;
-import com.ditadesigner.xpath.XPathEvaluationService.ExpressionCheckResult;
-import com.ditadesigner.xpath.XPathEvaluationService.XPathResult;
+import com.ditadesigner.xml.xpath.XPathEvaluationService;
+import com.ditadesigner.xml.xpath.XPathEvaluationService.ExpressionCheckResult;
+import com.ditadesigner.xml.xpath.XPathEvaluationService.XPathResult;
+
 import org.junit.jupiter.api.*;
 
 import java.util.Map;

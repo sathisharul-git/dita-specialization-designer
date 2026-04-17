@@ -423,6 +423,64 @@
 
 ---
 
+## Section Z1 · Inline Error Markers (XSLT Workbench)
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-224 | **As a** XSLT developer **I want** coloured gutter dots on error/warning lines (red = error, amber = warning) **so that** I can see at a glance which lines have problems. | [x] |
+| F-225 | **As a** XSLT developer **I want** to hover over a gutter dot to see the full error message **so that** I can read the diagnostic without looking at the message panel. | [x] |
+| F-226 | **As a** XSLT developer **I want** error lines underlined red and warning lines underlined amber inside the code editor **so that** I can identify problem lines while reading the code. | [x] |
+
+---
+
+## Section Z2 · Keyboard-First Workflow (XSLT Workbench)
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-227 | **As a** XSLT developer **I want** Ctrl+R to run the current transformation **so that** I can execute without reaching for the toolbar. | [x] |
+| F-228 | **As a** XSLT developer **I want** Ctrl+E to validate the XSLT stylesheet **so that** I can check for errors with a single keystroke. | [x] |
+| F-229 | **As a** XSLT developer **I want** Ctrl+S to save the XSLT editor content to its bound file (or prompt Save As if none) **so that** saving is instant and familiar. | [x] |
+| F-230 | **As a** XSLT developer **I want** Ctrl+/ to toggle comment/uncomment on the selected lines **so that** I can comment out blocks without manual typing. | [x] |
+| F-231 | **As a** XSLT developer **I want** Ctrl+D to duplicate the current line **so that** I can repeat boilerplate quickly. | [x] |
+
+---
+
+## Section Z3 · Parameter Panel & Auto-Run (XSLT Workbench)
+
+> **Epic:** Let users pass named parameters to XSLT stylesheets directly from the workbench UI, and optionally trigger the transform automatically after each edit.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-232 | **As a** XSLT developer **I want** a collapsible Parameters panel with an editable Name/Value table **so that** I can pass `xsl:param` values to the stylesheet without editing source files (collapsed `TitledPane`; `TableView<ParamEntry>` backed by `ObservableList`; Add / Remove buttons; blank-name rows skipped at transform time). | [x] |
+| F-236 | **As a** XSLT developer **I want** an Auto-run toggle button in the toolbar **so that** the transform fires automatically 800 ms after I stop typing in the XSLT editor (`ToggleButton autoRunBtn`; `PauseTransition autoRunTimer` reset on every XSLT text change when the toggle is selected). | [x] |
+
+---
+
+## Section Z4 · File Management & Dirty State (XSLT Workbench)
+
+> **Epic:** Track unsaved changes in the XSLT editor, guard the close action with a save prompt, and provide Preferences-backed recent-files menus for both XML and XSLT open actions.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-237 | **As a** XSLT developer **I want** the workbench title bar to show an asterisk when the XSLT editor has unsaved changes **so that** I always know whether my work is saved (`xsltDirty` flag; `clearDirty()` called on save and on load). | [x] |
+| F-238 | **As a** XSLT developer **I want** a YES / NO / CANCEL confirmation dialog when I close the workbench with unsaved changes **so that** I never accidentally lose my edits (Cancel keeps the window open; YES saves then closes; NO discards). | [x] |
+| F-239 | **As a** XSLT developer **I want** recent-files sub-menus on both the "Browse XML" and "Browse XSLT" split-menu buttons **so that** I can reopen previously used files without navigating the file system every time (`Preferences`-backed, up to 5 entries per list). | [x] |
+
+---
+
+## Section Z6 · Debugging Aids (XSLT Workbench)
+
+> **Epic:** Enhance the XSLT workbench message panel with structured, coloured entries for `xsl:message` output, clipboard copy of all entries, clickable line navigation, and a status bar showing output XML statistics plus elapsed transform time.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-245 | **As a** XSLT developer **I want** `xsl:message` output to appear in teal colour and timestamped in the message panel **so that** I can visually distinguish runtime trace messages from red errors and amber warnings (`MessageType.XSL_MESSAGE` → `#4ec9b0` in `MessageCell`; live callback dispatched per message via `xslMessageCallback` in `runTransform`). | [x] |
+| F-246 | **As a** XSLT developer **I want** a "Copy" button in the message panel header **so that** I can paste all log entries as timestamped plain text into a bug report or terminal (`[HH:mm:ss TYPE Lnn] text` format; writes to system clipboard). | [x] |
+| F-247 | **As a** XSLT developer **I want** message panel rows that carry a line number to be clickable **so that** clicking scrolls and moves the XSLT editor caret to that line (`showParagraphAtTop` + `moveTo` in `MessageCell.updateItem`; only wired when `entry.line() > 0`). | [x] |
+| F-248 | **As a** XSLT developer **I want** the status bar to show element count, attribute count, text-node count, and elapsed milliseconds after each successful transform **so that** I can quickly gauge output complexity without opening a separate XML tool (SAX scan of output on background thread; status format: `Transform complete in Nms — E element(s), A attribute(s), T text node(s) | C chars output`). | [x] |
+
+---
+
 ## Progress Summary
 
 | Category | Total | Done | Remaining |
@@ -449,11 +507,16 @@
 | T · Project Startup, Import & Content Model | 9 | 9 | 0 |
 | U · XSLT Development Environment | 12 | 12 | 0 |
 | V · Topic Type Import & Extend | 3 | 3 | 0 |
-| W � XPath Checker Enhancements | 3 | 3 | 0 |
+| W · XPath Checker Enhancements | 3 | 3 | 0 |
 | X · XPath Smart Suggestions in XSLT Editor | 8 | 8 | 0 |
 | Y · XSL IDE Smart Completion | 10 | 10 | 0 |
-| **TOTAL** | **223** | **220** | **9** |
+| Z1 · Inline Error Markers (XSLT Workbench) | 3 | 3 | 0 |
+| Z2 · Keyboard-First Workflow (XSLT Workbench) | 5 | 5 | 0 |
+| Z3 · Parameter Panel & Auto-Run (XSLT Workbench) | 2 | 2 | 0 |
+| Z4 · File Management & Dirty State (XSLT Workbench) | 3 | 3 | 0 |
+| Z6 · Debugging Aids (XSLT Workbench) | 4 | 4 | 0 |
+| **TOTAL** | **240** | **237** | **9** |
 
 ---
 
-_Last updated: 2026-04-11 (Y section: F-214 to F-223 XSL IDE Smart Completion — XSL element/snippet/variable/template completion + XPath Builder dialog) — (X section: F-206 to F-213 XPath Smart Suggestions in XSLT Editor) — � U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._
+_Last updated: 2026-04-13 (Z3 section: F-232 Parameter Panel — collapsible TitledPane with editable Name/Value TableView backed by ObservableList<ParamEntry>, Add/Remove buttons, params collected and passed to executionService.transform at run time; F-236 Auto-Run Toggle — ToggleButton in toolbar, PauseTransition 800 ms debounce on XSLT text changes) — (Z6 section: F-245 to F-248 Debugging Aids — xsl:message teal timestamped rows with live callback, Copy-all-to-clipboard button with timestamp format, clickable line-number rows scrolling XSLT editor, status bar showing element/attribute/text-node counts and elapsed ms) — (Z4 section: F-237 to F-239 File Management & Dirty State — dirty flag with title-bar asterisk, close-request YES/NO/CANCEL guard, Preferences-backed recent-files menus) — (Z1 section: F-224 to F-226 Inline Error Markers — coloured gutter dots, hover tooltips, underline highlighting) — (Z2 section: F-227 to F-231 Keyboard-First Workflow — Ctrl+R run, Ctrl+E validate, Ctrl+S save XSLT, Ctrl+/ comment toggle, Ctrl+D duplicate line) — (Y section: F-214 to F-223 XSL IDE Smart Completion — XSL element/snippet/variable/template completion + XPath Builder dialog) — (X section: F-206 to F-213 XPath Smart Suggestions in XSLT Editor) — U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._

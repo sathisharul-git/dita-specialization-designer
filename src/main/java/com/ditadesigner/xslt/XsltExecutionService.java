@@ -8,6 +8,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Service layer for XSLT 2.0/3.0 transformations using Saxon HE.
@@ -33,13 +34,17 @@ public class XsltExecutionService {
      * @return {@link TransformResult} — always non-null; check {@link TransformResult#isSuccess()}
      */
     public TransformResult transform(File xmlFile, File xsltFile, Map<String, String> params) {
-        long             start    = System.currentTimeMillis();
-        StringBuilder    messages = new StringBuilder();
+        return transform(xmlFile, xsltFile, params, null);
+    }
+
+    public TransformResult transform(File xmlFile, File xsltFile, Map<String, String> params,
+                                     Consumer<String> xslMessageCallback) {
+        long          start    = System.currentTimeMillis();
+        StringBuilder messages = new StringBuilder();
 
         try {
             XsltCompiler compiler = processor.newXsltCompiler();
 
-            // Capture compile-time errors into messages (do not throw yet)
             compiler.setErrorReporter(err -> {
                 String text = formatError(err.getMessage(), lineOf(err));
                 messages.append("[COMPILE] ").append(text).append('\n');
@@ -49,7 +54,6 @@ public class XsltExecutionService {
             XsltExecutable  executable  = compiler.compile(new StreamSource(xsltFile));
             XsltTransformer transformer = executable.load();
 
-            // Bind stylesheet parameters
             if (params != null) {
                 for (Map.Entry<String, String> e : params.entrySet()) {
                     transformer.setParameter(new QName(e.getKey()),
@@ -57,11 +61,14 @@ public class XsltExecutionService {
                 }
             }
 
-            // Capture xsl:message output
             transformer.setMessageHandler(msg -> {
                 String text = msg.getContent().getStringValue();
-                messages.append("[MSG] ").append(text).append('\n');
                 log.log("xsl:message — " + text);
+                if (xslMessageCallback != null) {
+                    xslMessageCallback.accept(text);
+                } else {
+                    messages.append("[MSG] ").append(text).append('\n');
+                }
             });
 
             transformer.setSource(new StreamSource(xmlFile));
@@ -77,12 +84,13 @@ public class XsltExecutionService {
             log.logSuccess("XSLT transform done in " + elapsed + "ms → "
                            + output.length() + " chars output");
 
-            return new TransformResult(output, messages.toString(), null);
+            return new TransformResult(output, messages.toString(), null, elapsed);
 
         } catch (SaxonApiException ex) {
-            String errorMsg = "Transform failed: " + ex.getMessage();
+            long   elapsed   = System.currentTimeMillis() - start;
+            String errorMsg  = "Transform failed: " + ex.getMessage();
             log.logError(errorMsg, ex);
-            return new TransformResult(null, messages.toString(), errorMsg);
+            return new TransformResult(null, messages.toString(), errorMsg, elapsed);
         }
     }
 
@@ -97,7 +105,7 @@ public class XsltExecutionService {
             File xslTmp  = writeTempFile("xslt-style-", ".xsl", xsltText);
             return transform(xmlTmp, xslTmp, params);
         } catch (IOException ex) {
-            return new TransformResult(null, "", "Cannot write temp file: " + ex.getMessage());
+            return new TransformResult(null, "", "Cannot write temp file: " + ex.getMessage(), 0);
         }
     }
 
@@ -138,7 +146,7 @@ public class XsltExecutionService {
      * @param messages     Any {@code xsl:message} or compile-warning text collected.
      * @param errorMessage Non-null when the transform failed; {@code null} on success.
      */
-    public record TransformResult(String output, String messages, String errorMessage) {
+    public record TransformResult(String output, String messages, String errorMessage, long elapsedMs) {
         public boolean isSuccess() { return errorMessage == null; }
     }
 }

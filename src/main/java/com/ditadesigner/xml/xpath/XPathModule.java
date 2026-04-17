@@ -1,7 +1,8 @@
-package com.ditadesigner.xpath;
+package com.ditadesigner.xml.xpath;
 
 import com.ditadesigner.util.LogService;
 import com.ditadesigner.xml.XmlCoreService;
+
 import javafx.stage.Stage;
 
 /**

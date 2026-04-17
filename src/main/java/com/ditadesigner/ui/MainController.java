@@ -1,10 +1,39 @@
 package com.ditadesigner.ui;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.prefs.Preferences;
+import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
+
 import com.ditadesigner.generator.CatalogGenerator;
 import com.ditadesigner.generator.DtdGenerator;
 import com.ditadesigner.generator.HtmlDocGenerator;
 import com.ditadesigner.generator.XsdGenerator;
-import com.ditadesigner.model.*;
+import com.ditadesigner.model.AttributeDef;
+import com.ditadesigner.model.DitaModel;
+import com.ditadesigner.model.DomainDef;
+import com.ditadesigner.model.ElementDef;
+import com.ditadesigner.model.Relationship;
+import com.ditadesigner.model.RelationshipType;
+import com.ditadesigner.model.TopicType;
 import com.ditadesigner.repository.ProjectRepository;
 import com.ditadesigner.service.OasisLoaderService;
 import com.ditadesigner.service.ProjectService;
@@ -15,32 +44,56 @@ import com.ditadesigner.ui.nodes.ElementNode;
 import com.ditadesigner.ui.nodes.TopicTypeNode;
 import com.ditadesigner.util.FileUtil;
 import com.ditadesigner.util.LogService;
+
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.SplitPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
 import javafx.scene.image.WritableImage;
-import javafx.scene.input.*;
-import javafx.scene.layout.*;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.ScrollEvent;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import javafx.scene.transform.Scale;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-
-import javax.imageio.ImageIO;
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.prefs.Preferences;
-import java.util.stream.Collectors;
 
 public class MainController implements Initializable {
 
@@ -3530,7 +3583,7 @@ public class MainController implements Initializable {
 
     @FXML
     private void onOpenXPathChecker() {
-        com.ditadesigner.xpath.XPathModule.openChecker(getStage());
+        com.ditadesigner.xml.xpath.XPathModule.openChecker(getStage());
         log.log("XPath Checker opened.");
     }
 
