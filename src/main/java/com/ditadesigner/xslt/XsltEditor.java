@@ -86,6 +86,8 @@ public class XsltEditor extends VBox {
     private final PauseTransition tagMatchDebounce =
             new PauseTransition(javafx.util.Duration.millis(80));
     private double fontSize;
+    // F-249: "xml" | "html" | "text" — "text" disables syntax highlighting
+    private String highlightMode = "xml";
 
     // ── Constructors ──────────────────────────────────────────────────────────
 
@@ -162,6 +164,15 @@ public class XsltEditor extends VBox {
     /** Direct access to the underlying {@link CodeArea} for advanced configuration. */
     public CodeArea getCodeArea() {
         return codeArea;
+    }
+
+    /**
+     * Set the output highlighting mode (F-249).
+     * @param mode "xml" or "html" for syntax highlighting; "text" to disable it
+     */
+    public void setHighlightMode(String mode) {
+        this.highlightMode = (mode == null) ? "xml" : mode;
+        Platform.runLater(this::applyHighlighting);
     }
 
     /** Mark error/warning lines in the gutter and underline them in the editor. */
@@ -264,6 +275,13 @@ public class XsltEditor extends VBox {
         String text = codeArea.getText();
         if (text.isEmpty()) return;
         try {
+            // Text mode: no syntax highlighting — clear all spans and return
+            if ("text".equals(highlightMode)) {
+                StyleSpansBuilder<Collection<String>> blank = new StyleSpansBuilder<>();
+                blank.add(Collections.emptyList(), text.length());
+                codeArea.setStyleSpans(0, blank.create());
+                return;
+            }
             StyleSpans<Collection<String>> spans = computeHighlighting(text);
             if (!errorsByLine.isEmpty()) spans = mergeErrorStyles(text, spans);
             if (!tagMatchRanges.isEmpty()) spans = mergeTagMatchStyles(text, spans);

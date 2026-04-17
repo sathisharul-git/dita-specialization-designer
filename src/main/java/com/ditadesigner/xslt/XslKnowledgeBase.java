@@ -329,7 +329,90 @@ public final class XslKnowledgeBase {
                 XslAttribute.str ("xmlns:xsl",      true,  "XSLT namespace declaration"),
                 XslAttribute.str ("xpath-default-namespace", false, "Default namespace for XPath")
             ),
-            "<xsl:stylesheet version=\"2.0\"\n  xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n  |\n</xsl:stylesheet>")
+            "<xsl:stylesheet version=\"2.0\"\n  xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">\n  |\n</xsl:stylesheet>"),
+
+        // ── XSLT 3.0 elements ─────────────────────────────────────────────────
+
+        new XslElement("try",
+            "[3.0] Evaluate content; catch errors with xsl:catch",
+            List.of(
+                XslAttribute.qname("as", false, "Required result type")
+            ),
+            "<xsl:try>\n  |\n  <xsl:catch errors=\"*\">\n    \n  </xsl:catch>\n</xsl:try>"),
+
+        new XslElement("catch",
+            "[3.0] Error handler inside xsl:try",
+            List.of(
+                XslAttribute.str ("errors", false, "Space-separated error QNames to catch (* = all)"),
+                XslAttribute.qname("as",    false, "Result type")
+            ),
+            "<xsl:catch errors=\"*\">\n  |\n</xsl:catch>"),
+
+        new XslElement("fork",
+            "[3.0] Evaluate multiple branches in parallel and merge results",
+            List.of(),
+            "<xsl:fork>\n  <xsl:sequence select=\"|\"/>\n</xsl:fork>"),
+
+        new XslElement("on-empty",
+            "[3.0] Output this content when the enclosing sequence is empty",
+            List.of(
+                XslAttribute.xpath("select", false, "Content to output when empty")
+            ),
+            "<xsl:on-empty>\n  |\n</xsl:on-empty>"),
+
+        new XslElement("on-non-empty",
+            "[3.0] Output this content when the enclosing sequence is non-empty",
+            List.of(
+                XslAttribute.xpath("select", false, "Content to output when non-empty")
+            ),
+            "<xsl:on-non-empty>\n  |\n</xsl:on-non-empty>"),
+
+        new XslElement("iterate",
+            "[3.0] Iterate over a sequence with accumulator variables",
+            List.of(
+                XslAttribute.xpath("select", true, "Sequence to iterate over")
+            ),
+            "<xsl:iterate select=\"|\">\n  <xsl:param name=\"acc\" select=\"0\"/>\n  \n  <xsl:next-iteration>\n    <xsl:with-param name=\"acc\" select=\"$acc\"/>\n  </xsl:next-iteration>\n</xsl:iterate>"),
+
+        new XslElement("next-iteration",
+            "[3.0] Advance xsl:iterate to the next item with updated params",
+            List.of(),
+            "<xsl:next-iteration>\n  <xsl:with-param name=\"|\" select=\"\"/>\n</xsl:next-iteration>"),
+
+        new XslElement("break",
+            "[3.0] Exit an xsl:iterate loop, optionally with a final value",
+            List.of(
+                XslAttribute.xpath("select", false, "Final value to return from the loop")
+            ),
+            "<xsl:break select=\"|\"/>"),
+
+        new XslElement("merge",
+            "[3.0] Merge multiple pre-sorted sequences",
+            List.of(),
+            "<xsl:merge>\n  <xsl:merge-source name=\"|\" select=\"\">\n    <xsl:merge-key select=\".\"/>\n  </xsl:merge-source>\n  <xsl:merge-action>\n    \n  </xsl:merge-action>\n</xsl:merge>"),
+
+        new XslElement("assert",
+            "[3.0] Raise a run-time assertion (Saxon extension)",
+            List.of(
+                XslAttribute.xpath("test",    true,  "Boolean assertion expression"),
+                XslAttribute.str ("error-code", false, "Error code to raise on failure")
+            ),
+            "<xsl:assert test=\"|\" error-code=\"Q{}\"/>"),
+
+        new XslElement("map",
+            "[3.0] Construct an XPath 3.1 map literal",
+            List.of(
+                XslAttribute.xpath("select", false, "XPath 3.1 map expression")
+            ),
+            "<xsl:map>\n  <xsl:map-entry key=\"'|'\" select=\"\"/>\n</xsl:map>"),
+
+        new XslElement("map-entry",
+            "[3.0] Single entry in an xsl:map",
+            List.of(
+                XslAttribute.xpath("key",    true, "Key expression"),
+                XslAttribute.xpath("select", true, "Value expression")
+            ),
+            "<xsl:map-entry key=\"'|'\" select=\"\"/>")
     );
 
     // ── Fast lookup ───────────────────────────────────────────────────────────

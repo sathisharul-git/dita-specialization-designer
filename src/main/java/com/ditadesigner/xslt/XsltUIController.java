@@ -129,13 +129,18 @@ public class XsltUIController {
     private static final Preferences PREFS =
             Preferences.userNodeForPackage(XsltUIController.class);
 
+    // ── Patterns for Go-to-Template scanner (F-253) ───────────────────────────
+    private static final Pattern TMPL_OPEN_PAT = Pattern.compile(
+            "<xsl:template\\b([^>]*)>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern ATTR_NAME_PAT  = Pattern.compile("\\bname=[\"']([^\"']+)[\"']");
+    private static final Pattern ATTR_MATCH_PAT = Pattern.compile("\\bmatch=[\"']([^\"']+)[\"']");
+
     // ── State ─────────────────────────────────────────────────────────────────
     private final Stage ownerStage;
     private       Stage workbenchStage;
     private       File  currentXmlFile;
-    private       File  currentXsltFile;
     private       String lastOutput = "";
-    private       boolean xsltDirty = false;
+    private       int    untitledCount = 0;
 
     // ── F-232: XSLT parameters ────────────────────────────────────────────────
     private final ObservableList<ParamEntry> xsltParams = FXCollections.observableArrayList();
@@ -147,7 +152,8 @@ public class XsltUIController {
 
     // ── UI References ─────────────────────────────────────────────────────────
     private XsltEditor              xmlEditor;
-    private XsltEditor              xsltEditor;
+    private TabPane                 xsltTabPane;
+    private final List<XsltTabEntry> xsltTabs = new ArrayList<>();
     private XsltEditor              outputEditor;
     private TextField               xmlPathField;
     private TextField               xsltPathField;
@@ -160,6 +166,9 @@ public class XsltUIController {
     private TabPane                  outputTabPane;
     private static final Pattern     HTML_METHOD_PAT =
             Pattern.compile("method=[\"'](html|xhtml)[\"']", Pattern.CASE_INSENSITIVE);
+    // F-249: output-method detection
+    private static final Pattern     TEXT_METHOD_PAT =
+            Pattern.compile("method=[\"']text[\"']",         Pattern.CASE_INSENSITIVE);
 
     // ── F-235: Find in output ─────────────────────────────────────────────────
     private HBox         findBar;
@@ -217,18 +226,21 @@ public class XsltUIController {
         stage.setMinWidth(800);
         stage.setMinHeight(500);
         stage.setOnCloseRequest(event -> {
-            if (xsltDirty) {
+            List<XsltTabEntry> dirty = xsltTabs.stream().filter(t -> t.dirty).toList();
+            if (!dirty.isEmpty()) {
+                String names = dirty.stream().map(XsltTabEntry::baseName)
+                        .collect(Collectors.joining(", "));
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                 alert.setTitle("Unsaved Changes");
-                alert.setHeaderText("The XSLT stylesheet has unsaved changes.");
-                alert.setContentText("Save before closing?");
+                alert.setHeaderText("Unsaved changes in: " + names);
+                alert.setContentText("Save all before closing?");
                 alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO, ButtonType.CANCEL);
                 Optional<ButtonType> result = alert.showAndWait();
                 if (result.isEmpty() || result.get() == ButtonType.CANCEL) {
                     event.consume();
                     return;
                 } else if (result.get() == ButtonType.YES) {
-                    saveXslt();
+                    dirty.forEach(this::saveXsltEntry);
                 }
             }
             executor.shutdown();
@@ -271,10 +283,10 @@ public class XsltUIController {
                 this::saveXslt);
         scene.getAccelerators().put(
                 new KeyCodeCombination(KeyCode.SLASH, KeyCombination.CONTROL_DOWN),
-                () -> xsltEditor.toggleLineComment());
+                () -> { XsltEditor ae = activeEditor(); if (ae != null) ae.toggleLineComment(); });
         scene.getAccelerators().put(
                 new KeyCodeCombination(KeyCode.D, KeyCombination.CONTROL_DOWN),
-                () -> xsltEditor.duplicateCurrentLine());
+                () -> { XsltEditor ae = activeEditor(); if (ae != null) ae.duplicateCurrentLine(); });
 
         // F-235: Ctrl+F → show Find-in-Output bar when XML Output tab is active
         scene.getAccelerators().put(
@@ -291,16 +303,28 @@ public class XsltUIController {
         // Editor ergonomics shortcuts (Section Z5)
         scene.getAccelerators().put(
                 new KeyCodeCombination(KeyCode.CLOSE_BRACKET, KeyCombination.CONTROL_DOWN),
-                () -> xsltEditor.indentSelection());
+                () -> { XsltEditor ae = activeEditor(); if (ae != null) ae.indentSelection(); });
         scene.getAccelerators().put(
                 new KeyCodeCombination(KeyCode.OPEN_BRACKET, KeyCombination.CONTROL_DOWN),
-                () -> xsltEditor.dedentSelection());
+                () -> { XsltEditor ae = activeEditor(); if (ae != null) ae.dedentSelection(); });
         scene.getAccelerators().put(
                 new KeyCodeCombination(KeyCode.EQUALS, KeyCombination.CONTROL_DOWN),
-                () -> xsltEditor.increaseFontSize());
+                () -> { XsltEditor ae = activeEditor(); if (ae != null) ae.increaseFontSize(); });
         scene.getAccelerators().put(
                 new KeyCodeCombination(KeyCode.MINUS, KeyCombination.CONTROL_DOWN),
-                () -> xsltEditor.decreaseFontSize());
+                () -> { XsltEditor ae = activeEditor(); if (ae != null) ae.decreaseFontSize(); });
+
+        // F-251: Ctrl+Shift+F → format XSLT
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.F,
+                        KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN),
+                this::formatXslt);
+
+        // F-253: Ctrl+Shift+T → Go-to-Template
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.T,
+                        KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN),
+                this::showGotoTemplate);
 
         return stage;
     }
@@ -366,6 +390,10 @@ public class XsltUIController {
         saveXsltBtn.setOnAction(e -> saveXslt());
         Tooltip.install(saveXsltBtn, new Tooltip("Save XSLT editor content (Ctrl+S)"));
 
+        Button formatXsltBtn = new Button("Format XSLT");
+        formatXsltBtn.setOnAction(e -> formatXslt());
+        Tooltip.install(formatXsltBtn, new Tooltip("Reformat XSLT with Saxon indent=yes (Ctrl+Shift+F)"));
+
         Button saveOutputBtn = new Button("Save Output…");
         saveOutputBtn.setOnAction(e -> saveOutput());
 
@@ -388,7 +416,7 @@ public class XsltUIController {
                 "Automatically re-run the transform 800 ms after each XSLT edit"));
 
         HBox actionRow = new HBox(8,
-                runBtn, validateBtn, saveXsltBtn,
+                runBtn, validateBtn, saveXsltBtn, formatXsltBtn,
                 new Separator(Orientation.VERTICAL),
                 saveOutputBtn, clearBtn,
                 new Separator(Orientation.VERTICAL),
@@ -452,13 +480,29 @@ public class XsltUIController {
     // ── Editor area ────────────────────────────────────────────────────────────
 
     private SplitPane buildEditorArea() {
-        // Left: XML input on top, XSLT editor below
-        xmlEditor  = new XsltEditor(false);
-        xsltEditor = new XsltEditor(false);
-        xsltEditor.setText(DEFAULT_XSLT);  // seed with a starter template
+        // Left: XML input on top, multi-tab XSLT editor below (F-252)
+        xmlEditor = new XsltEditor(false);
 
-        TitledPane xmlPane  = editorPane("XML Input",    xmlEditor);
-        TitledPane xsltPane = editorPane("XSLT Editor",  xsltEditor);
+        xsltTabPane = new TabPane();
+        xsltTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
+
+        Button newTabBtn = new Button("+ New Tab");
+        newTabBtn.setStyle("-fx-font-size: 11px; -fx-padding: 2 6 2 6;");
+        newTabBtn.setOnAction(e -> {
+            XsltTabEntry t = createXsltTab("Untitled " + (++untitledCount), null, DEFAULT_XSLT);
+            xsltTabPane.getSelectionModel().select(t.tab);
+        });
+        HBox tabHeader = new HBox(newTabBtn);
+        tabHeader.setPadding(new Insets(2, 4, 2, 4));
+        tabHeader.setStyle("-fx-background-color: #f0f0f0; -fx-border-color: #d0d0d0; "
+                + "-fx-border-width: 0 0 1 0;");
+        VBox xsltArea = new VBox(tabHeader, xsltTabPane);
+        VBox.setVgrow(xsltTabPane, Priority.ALWAYS);
+
+        createXsltTab("Untitled", null, DEFAULT_XSLT);   // first tab
+
+        TitledPane xmlPane  = editorPane("XML Input",   xmlEditor);
+        TitledPane xsltPane = editorPane("XSLT Editor", xsltArea);
 
         SplitPane leftSplit = new SplitPane(xmlPane, xsltPane);
         leftSplit.setOrientation(Orientation.VERTICAL);
@@ -500,35 +544,22 @@ public class XsltUIController {
             }
         });
 
-        // Re-scan XSLT for variables/params/named-templates on text change; track dirty state
-        xsltEditor.getCodeArea().textProperty().addListener((obs, old, text) -> {
-            if (text != null) {
-                cachedScan = XslVariableScanner.scan(text);
-                if (!xsltDirty) {
-                    xsltDirty = true;
-                    if (workbenchStage != null) {
-                        String title = workbenchStage.getTitle();
-                        if (!title.startsWith("* ")) {
-                            workbenchStage.setTitle("* " + title);
-                        }
-                    }
-                }
-                if (autoRunBtn != null && autoRunBtn.isSelected()) {
-                    autoRunTimer.stop();
-                    autoRunTimer.playFromStart();
-                }
+        // Per-tab listeners are wired in createXsltTab(); tab-switch updates cachedScan + key handler
+        xsltTabPane.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
+            XsltTabEntry entry = activeTab();
+            if (entry != null) {
+                cachedScan = entry.scan;
+                suggestionPopup.hide();
+                suggestionPopup.installKeyHandler(entry.editor.getCodeArea());
+                xsltPathField.setText(entry.file != null ? entry.file.getAbsolutePath() : "");
             }
         });
 
-        // Trigger suggestions on every caret move in the XSLT editor
-        xsltEditor.getCodeArea().caretPositionProperty().addListener(
-                (obs, old, pos) -> triggerSuggestions(
-                        xsltEditor.getCodeArea().getText(),
-                        xsltEditor.getCodeArea().getCaretPosition()));
-
         // Accept: dispatch to the correct insertion strategy
         suggestionPopup.setOnAccept(completion -> {
-            CodeArea ca      = xsltEditor.getCodeArea();
+            XsltEditor ae = activeEditor();
+            if (ae == null) return;
+            CodeArea ca      = ae.getCodeArea();
             int caretPos     = ca.getCaretPosition();
             String text      = ca.getText();
             String before    = caretPos > 0 ? text.substring(0, caretPos) : "";
@@ -579,7 +610,8 @@ public class XsltUIController {
                 executor.submit(() -> callback.accept(suggestionService.countMatches(expr))));
 
         // Keyboard: ↑ ↓ Enter Tab Escape are intercepted when popup is open
-        suggestionPopup.installKeyHandler(xsltEditor.getCodeArea());
+        XsltTabEntry firstTab = activeTab();
+        if (firstTab != null) suggestionPopup.installKeyHandler(firstTab.editor.getCodeArea());
     }
 
     /**
@@ -658,7 +690,9 @@ public class XsltUIController {
     private void showSuggestionPopup(List<String> suggestions) {
         if (suggestions.isEmpty()) { suggestionPopup.hide(); return; }
 
-        CodeArea ca = xsltEditor.getCodeArea();
+        XsltEditor popupAe = activeEditor();
+        if (popupAe == null) return;
+        CodeArea ca = popupAe.getCodeArea();
         if (ca.getScene() == null) return;
         Window window = ca.getScene().getWindow();
 
@@ -683,9 +717,10 @@ public class XsltUIController {
         dlg.setMatchCounter(suggestionService::countMatches);
 
         dlg.showAndWait().ifPresent(xpath -> {
-            CodeArea ca = xsltEditor.getCodeArea();
-            int pos = ca.getCaretPosition();
-            ca.insertText(pos, xpath);
+            XsltEditor ae = activeEditor();
+            if (ae == null) return;
+            CodeArea ca = ae.getCodeArea();
+            ca.insertText(ca.getCaretPosition(), xpath);
         });
     }
 
@@ -817,7 +852,9 @@ public class XsltUIController {
                      + "-fx-background-color: #1e1e1e;");
             if (entry.line() > 0) {
                 setOnMouseClicked(ev -> {
-                    CodeArea ca = xsltEditor.getCodeArea();
+                    XsltEditor ae = activeEditor();
+                    if (ae == null) return;
+                    CodeArea ca = ae.getCodeArea();
                     ca.showParagraphAtTop(Math.max(0, entry.line() - 1));
                     ca.moveTo(entry.line() - 1, 0);
                     ca.requestFocus();
@@ -866,11 +903,15 @@ public class XsltUIController {
 
     private void loadXsltFile(File f) {
         try {
-            currentXsltFile = f;
+            String content = Files.readString(f.toPath(), StandardCharsets.UTF_8);
+            XsltTabEntry entry = activeTab();
+            if (entry == null) entry = createXsltTab("Untitled", null, "");
+            entry.file = f;
+            entry.editor.setText(content);
+            entry.tab.setText(f.getName());
+            entry.clearDirty(workbenchStage);
             xsltPathField.setText(f.getAbsolutePath());
-            xsltEditor.setText(Files.readString(f.toPath(), StandardCharsets.UTF_8));
             saveRecentFile(PREF_RECENT_XSLT, f.getAbsolutePath());
-            clearDirty();
             setStatus("XSLT loaded: " + f.getName());
             log.log("[XSLT] Loaded stylesheet: " + f.getAbsolutePath());
         } catch (Exception ex) {
@@ -884,8 +925,13 @@ public class XsltUIController {
                 .getResourceAsStream("/xslt/dita-to-html.xsl")) {
             if (is == null) { appendMessage("ERROR: built-in DITA→HTML template not found."); return; }
             String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            xsltEditor.setText(content);
-            currentXsltFile = null;
+            XsltTabEntry bEntry = activeTab();
+            if (bEntry != null) {
+                bEntry.editor.setText(content);
+                bEntry.file = null;
+                bEntry.tab.setText("DITA→HTML");
+                bEntry.clearDirty(workbenchStage);
+            }
             xsltPathField.setText("<built-in DITA→HTML template>");
             setStatus("Built-in DITA→HTML stylesheet loaded.");
         } catch (Exception ex) {
@@ -900,7 +946,8 @@ public class XsltUIController {
         if (xmlFile == null) { appendMessage("ERROR: XML input is empty. Open a file or type XML."); return; }
         if (xsltFile == null) { appendMessage("ERROR: XSLT stylesheet is empty. Open a file or use the editor."); return; }
 
-        xsltEditor.clearErrorMarkers();
+        XsltEditor rae = activeEditor();
+        if (rae != null) rae.clearErrorMarkers();
         setStatus("Running transformation…");
         appendMessage("── Transform started ──────────────────────────────");
         outputEditor.clear();
@@ -953,9 +1000,14 @@ public class XsltUIController {
 
                 if (result.isSuccess()) {
                     lastOutput = result.output();
+                    // F-249: switch output highlight mode to match xsl:output method
+                    XsltEditor rtAe = activeEditor();
+                    String xsltText = rtAe != null ? rtAe.getText() : "";
+                    boolean isHtml = HTML_METHOD_PAT.matcher(xsltText).find();
+                    boolean isText = !isHtml && TEXT_METHOD_PAT.matcher(xsltText).find();
+                    outputEditor.setHighlightMode(isText ? "text" : isHtml ? "html" : "xml");
                     outputEditor.setText(lastOutput);
                     // F-234: HTML preview tab
-                    boolean isHtml = HTML_METHOD_PAT.matcher(xsltEditor.getText()).find();
                     webView.getEngine().loadContent(isHtml ? lastOutput : "", "text/html");
                     // F-248: status bar with element/attribute/text counts and elapsed time
                     String statMsg;
@@ -1009,10 +1061,11 @@ public class XsltUIController {
             List<XsltValidationError> errors = validationService.validate(xsltFile);
 
             Platform.runLater(() -> {
+                XsltEditor vae = activeEditor();
                 if (errors.isEmpty()) {
                     appendMessage("OK — stylesheet is valid.");
                     setStatus("Validation passed.");
-                    xsltEditor.clearErrorMarkers();
+                    if (vae != null) vae.clearErrorMarkers();
                 } else {
                     long errCount  = errors.stream()
                             .filter(e -> e.getSeverity() == XsltValidationError.Severity.ERROR)
@@ -1020,47 +1073,39 @@ public class XsltUIController {
                     long warnCount = errors.size() - errCount;
                     errors.forEach(e -> appendMessage(e.toString()));
                     setStatus("Validation: " + errCount + " error(s), " + warnCount + " warning(s).");
-                    xsltEditor.setErrorMarkers(errors);
+                    if (vae != null) vae.setErrorMarkers(errors);
                 }
             });
         });
     }
 
     private void saveXslt() {
-        String content = xsltEditor.getText();
-        if (content.isBlank()) {
+        XsltTabEntry entry = activeTab();
+        if (entry == null) return;
+        if (entry.editor.getText().isBlank()) {
             appendMessage("Nothing to save — XSLT editor is empty.");
             return;
         }
-        if (currentXsltFile != null && currentXsltFile.exists()) {
+        saveXsltEntry(entry);
+    }
+
+    /** F-251: Reformat the XSLT editor content with Saxon indent=yes (Ctrl+Shift+F). */
+    private void formatXslt() {
+        XsltEditor fae = activeEditor();
+        if (fae == null) return;
+        String text = fae.getText();
+        if (text.isBlank()) return;
+        executor.submit(() -> {
             try {
-                Files.writeString(currentXsltFile.toPath(), content, StandardCharsets.UTF_8);
-                clearDirty();
-                setStatus("XSLT saved: " + currentXsltFile.getName());
-                appendMessage("Saved → " + currentXsltFile.getAbsolutePath());
+                String formatted = XsltFormatter.format(text);
+                Platform.runLater(() -> {
+                    fae.setText(formatted);
+                    setStatus("XSLT formatted.");
+                });
             } catch (Exception ex) {
-                appendMessage("ERROR saving XSLT: " + ex.getMessage());
+                Platform.runLater(() -> appendMessage("Format error: " + ex.getMessage()));
             }
-        } else {
-            FileChooser fc = new FileChooser();
-            fc.setTitle("Save XSLT Stylesheet");
-            fc.getExtensionFilters().addAll(
-                    new FileChooser.ExtensionFilter("XSLT Files", "*.xsl", "*.xslt"),
-                    new FileChooser.ExtensionFilter("All Files", "*.*"));
-            fc.setInitialFileName("stylesheet.xsl");
-            File f = fc.showSaveDialog(workbenchStage);
-            if (f == null) return;
-            try {
-                Files.writeString(f.toPath(), content, StandardCharsets.UTF_8);
-                currentXsltFile = f;
-                xsltPathField.setText(f.getAbsolutePath());
-                clearDirty();
-                setStatus("XSLT saved: " + f.getName());
-                appendMessage("Saved → " + f.getAbsolutePath());
-            } catch (Exception ex) {
-                appendMessage("ERROR saving XSLT: " + ex.getMessage());
-            }
-        }
+        });
     }
 
     private void saveOutput() {
@@ -1113,8 +1158,10 @@ public class XsltUIController {
      * writes the editor text (useful for the "built-in template" case) to a temp file.
      */
     private File resolveXsltSource() {
+        XsltTabEntry entry = activeTab();
+        File currentXsltFile = entry != null ? entry.file : null;
         if (currentXsltFile != null && currentXsltFile.exists()) return currentXsltFile;
-        String text = xsltEditor.getText();
+        String text = entry != null ? entry.editor.getText() : "";
         if (text.isBlank()) return null;
         return writeTempFile("xslt-style-", ".xsl", text);
     }
@@ -1155,13 +1202,8 @@ public class XsltUIController {
     // ── Dirty state ────────────────────────────────────────────────────────────
 
     private void clearDirty() {
-        xsltDirty = false;
-        if (workbenchStage != null) {
-            String title = workbenchStage.getTitle();
-            if (title.startsWith("* ")) {
-                workbenchStage.setTitle(title.substring(2));
-            }
-        }
+        XsltTabEntry entry = activeTab();
+        if (entry != null) entry.clearDirty(workbenchStage);
     }
 
     // ── Recent files (Preferences-backed) ─────────────────────────────────────
@@ -1200,6 +1242,186 @@ public class XsltUIController {
                 item.setOnAction(e -> loader.accept(path));
                 menu.getItems().add(item);
             }
+        }
+    }
+
+    // ── Multi-tab helpers (F-252) ─────────────────────────────────────────────
+
+    /** Return the {@link XsltTabEntry} whose tab is currently selected, or {@code null}. */
+    private XsltTabEntry activeTab() {
+        Tab sel = xsltTabPane == null ? null : xsltTabPane.getSelectionModel().getSelectedItem();
+        if (sel == null) return null;
+        return xsltTabs.stream().filter(t -> t.tab == sel).findFirst().orElse(null);
+    }
+
+    /** Return the {@link XsltEditor} for the currently selected tab, or {@code null}. */
+    private XsltEditor activeEditor() {
+        XsltTabEntry t = activeTab();
+        return t == null ? null : t.editor;
+    }
+
+    /**
+     * Create a new tab, register it, wire per-tab listeners, and add it to the TabPane.
+     *
+     * @param title   display title
+     * @param file    backing file (may be {@code null} for untitled)
+     * @param content initial text content
+     * @return the newly created entry
+     */
+    private XsltTabEntry createXsltTab(String title, File file, String content) {
+        XsltEditor editor = new XsltEditor(false);
+        editor.setText(content);
+
+        Tab tab = new Tab(title, editor);
+        tab.setClosable(true);
+        tab.setOnCloseRequest(e -> {
+            if (xsltTabPane.getTabs().size() <= 1) { e.consume(); return; }
+            XsltTabEntry entry = xsltTabs.stream().filter(t -> t.tab == tab).findFirst().orElse(null);
+            if (entry != null && entry.dirty) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Unsaved Changes");
+                alert.setHeaderText("Save \"" + entry.baseName() + "\" before closing?");
+                alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO, ButtonType.CANCEL);
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.isEmpty() || result.get() == ButtonType.CANCEL) { e.consume(); return; }
+                if (result.get() == ButtonType.YES) saveXsltEntry(entry);
+            }
+            xsltTabs.removeIf(t -> t.tab == tab);
+        });
+
+        XsltTabEntry entry = new XsltTabEntry(tab, editor, file);
+
+        // Per-tab: text changes → dirty flag + auto-run + re-scan + suggestions
+        editor.getCodeArea().textProperty().addListener((obs, old, text) -> {
+            if (!entry.dirty) entry.markDirty(workbenchStage);
+            if (autoRunBtn != null && autoRunBtn.isSelected()) autoRunTimer.playFromStart();
+            entry.scan = XslVariableScanner.scan(text);
+            if (entry == activeTab()) cachedScan = entry.scan;
+            triggerSuggestions(text, editor.getCodeArea().getCaretPosition());
+        });
+        editor.getCodeArea().caretPositionProperty().addListener((obs, old, pos) ->
+                triggerSuggestions(editor.getCodeArea().getText(), pos.intValue()));
+
+        xsltTabs.add(entry);
+        xsltTabPane.getTabs().add(tab);
+        return entry;
+    }
+
+    /** Save a tab entry to its backing file; opens a save dialog if no file is bound. */
+    private void saveXsltEntry(XsltTabEntry entry) {
+        String content = entry.editor.getText();
+        if (entry.file != null && entry.file.exists()) {
+            try {
+                Files.writeString(entry.file.toPath(), content, StandardCharsets.UTF_8);
+                entry.clearDirty(workbenchStage);
+                setStatus("XSLT saved: " + entry.file.getName());
+                appendMessage("Saved → " + entry.file.getAbsolutePath());
+            } catch (Exception ex) {
+                appendMessage("ERROR saving XSLT: " + ex.getMessage());
+            }
+        } else {
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Save XSLT Stylesheet");
+            fc.getExtensionFilters().addAll(
+                    new FileChooser.ExtensionFilter("XSLT Files", "*.xsl", "*.xslt"),
+                    new FileChooser.ExtensionFilter("All Files", "*.*"));
+            fc.setInitialFileName(entry.baseName() + ".xsl");
+            File f = fc.showSaveDialog(workbenchStage);
+            if (f == null) return;
+            try {
+                Files.writeString(f.toPath(), content, StandardCharsets.UTF_8);
+                entry.file = f;
+                entry.tab.setText(f.getName());
+                entry.clearDirty(workbenchStage);
+                xsltPathField.setText(f.getAbsolutePath());
+                saveRecentFile(PREF_RECENT_XSLT, f.getAbsolutePath());
+                setStatus("XSLT saved: " + f.getName());
+                appendMessage("Saved → " + f.getAbsolutePath());
+            } catch (Exception ex) {
+                appendMessage("ERROR saving XSLT: " + ex.getMessage());
+            }
+        }
+    }
+
+    /** F-253: Show a quick-open dialog listing all named/matched templates in the active tab. */
+    private void showGotoTemplate() {
+        XsltTabEntry entry = activeTab();
+        if (entry == null) return;
+        String source = entry.editor.getText();
+
+        List<String>  labels = new ArrayList<>();
+        List<Integer> lines  = new ArrayList<>();
+        String[] srcLines = source.split("\n", -1);
+        for (int i = 0; i < srcLines.length; i++) {
+            Matcher mo = TMPL_OPEN_PAT.matcher(srcLines[i]);
+            while (mo.find()) {
+                String attrs = mo.group(1);
+                String nameVal = "", matchVal = "";
+                Matcher nm = ATTR_NAME_PAT.matcher(attrs);
+                if (nm.find()) nameVal = nm.group(1);
+                Matcher mm = ATTR_MATCH_PAT.matcher(attrs);
+                if (mm.find()) matchVal = mm.group(1);
+                labels.add(nameVal.isEmpty() ? "match=\"" + matchVal + "\"" : "name=\"" + nameVal + "\"");
+                lines.add(i + 1);
+            }
+        }
+
+        if (labels.isEmpty()) {
+            appendMessage("No templates found in the active stylesheet.");
+            return;
+        }
+
+        ChoiceDialog<String> dlg = new ChoiceDialog<>(labels.get(0), labels);
+        dlg.setTitle("Go to Template");
+        dlg.setHeaderText("Select a template to navigate to:");
+        dlg.setContentText("Template:");
+        dlg.initOwner(workbenchStage);
+        dlg.showAndWait().ifPresent(chosen -> {
+            int idx = labels.indexOf(chosen);
+            if (idx >= 0) {
+                int lineNum = lines.get(idx);
+                CodeArea ca = entry.editor.getCodeArea();
+                ca.showParagraphAtTop(Math.max(0, lineNum - 1));
+                ca.moveTo(lineNum - 1, 0);
+                ca.requestFocus();
+            }
+        });
+    }
+
+    // ── XsltTabEntry: per-tab state ───────────────────────────────────────────
+
+    private class XsltTabEntry {
+        final Tab        tab;
+        final XsltEditor editor;
+        File             file;
+        boolean          dirty = false;
+        volatile XslVariableScanner.ScanResult scan = XslVariableScanner.ScanResult.EMPTY;
+
+        XsltTabEntry(Tab tab, XsltEditor editor, File file) {
+            this.tab    = tab;
+            this.editor = editor;
+            this.file   = file;
+        }
+
+        void markDirty(Stage stage) {
+            dirty = true;
+            if (stage != null && !stage.getTitle().startsWith("* "))
+                stage.setTitle("* " + stage.getTitle());
+            String base = baseName();
+            if (!tab.getText().endsWith(" *")) tab.setText(base + " *");
+        }
+
+        void clearDirty(Stage stage) {
+            dirty = false;
+            if (stage != null) {
+                String title = stage.getTitle();
+                if (title.startsWith("* ")) stage.setTitle(title.substring(2));
+            }
+            tab.setText(baseName());
+        }
+
+        String baseName() {
+            return file != null ? file.getName() : tab.getText().replace(" *", "");
         }
     }
 }

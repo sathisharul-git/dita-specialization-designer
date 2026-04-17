@@ -481,6 +481,43 @@
 
 ---
 
+## Section Z5 · Editor Ergonomics (XSLT Workbench)
+
+> **Epic:** Make the XSLT editor feel like a real IDE — auto-close XML tags and paired quotes, indent/dedent selections, adjust font size, and highlight matching open/close tag pairs under the caret.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-240 | **As a** XSLT developer **I want** the editor to auto-close XML tags when I type `>` **so that** I never have to manually type the closing tag (`handleTagAutoClose` scans backwards for the last unclosed opening tag and inserts `></tagName>` with caret placed inside). | [x] |
+| F-241 | **As a** XSLT developer **I want** paired double-quote insertion when I type `"` inside an attribute context **so that** I can place the caret between the quotes immediately (only activates when inside a tag; skips over an existing closing quote). | [x] |
+| F-242 | **As a** XSLT developer **I want** Ctrl+] to indent and Ctrl+[ to dedent selected lines by two spaces **so that** I can reformat multi-line blocks without using the mouse (`indentSelection` / `dedentSelection` in `XsltEditor`; wired as accelerators in `XsltUIController`). | [x] |
+| F-243 | **As a** XSLT developer **I want** Ctrl+= to increase and Ctrl+- to decrease the editor font size **so that** I can adapt the display to my screen and preferences (1pt steps; clamped 9–28; persisted via `Preferences` node for `XsltEditor`). | [x] |
+| F-244 | **As a** XSLT developer **I want** the matching opening and closing tag to be highlighted when the caret is on a tag name **so that** I can visually trace paired tags (debounced 80ms PauseTransition; LRU Pattern cache; `xsl-tag-match` CSS class via third StyleSpans overlay pass). | [x] |
+
+---
+
+## Section Z7 · XSLT Intelligence (XSLT Workbench)
+
+> **Epic:** Make the workbench smarter about XSLT content: auto-detect the output method to switch editor highlighting, expose XSLT 3.0 elements in the completion knowledge base, and provide one-keystroke pretty-printing of the entire stylesheet.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-249 | **As a** XSLT developer **I want** the output panel to automatically switch syntax-highlighting off when the stylesheet produces plain text **so that** the output editor does not attempt XML colouring on non-XML content (detects `method="text"` via `TEXT_METHOD_PAT`; calls `outputEditor.setHighlightMode("text"/"html"/"xml")` after each transform; `XsltEditor.applyHighlighting` emits blank StyleSpans for text mode). | [x] |
+| F-250 | **As a** XSLT developer **I want** XSLT 3.0 elements (xsl:try, xsl:catch, xsl:fork, xsl:on-empty, xsl:on-non-empty, xsl:iterate, xsl:next-iteration, xsl:break, xsl:merge, xsl:assert, xsl:map, xsl:map-entry) to appear in the auto-completion popup **so that** I can write 3.0 stylesheets with the same IDE assistance as 2.0 (12 new entries added to `XslKnowledgeBase.ALL_ELEMENTS` with descriptions and snippets). | [x] |
+| F-251 | **As a** XSLT developer **I want** Ctrl+Shift+F to reformat the XSLT editor content with consistent indentation **so that** I can clean up hand-edited or imported stylesheets instantly (`XsltFormatter` uses Saxon `DocumentBuilder` + `Serializer` with `indent=yes`; runs on background executor; "Format XSLT" toolbar button added). | [x] |
+
+---
+
+## Section Z8 · Multi-File Navigation (XSLT Workbench)
+
+> **Epic:** Allow working with more than one stylesheet at a time and provide a quick-open overlay for jumping between named templates and match patterns.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-252 | **As a** XSLT developer **I want** a multi-tab stylesheet editor **so that** I can switch between several stylesheets without reopening files (`XsltTabEntry` inner class holds per-tab `XsltEditor`, file, dirty flag, and scan; tabs wired in `createXsltTab()`; tab-switch listener updates `cachedScan` + key handler; "+ New Tab" button; close guard for dirty state). | [x] |
+| F-253 | **As a** XSLT developer **I want** a Go-to-Template quick-open overlay (Ctrl+Shift+T) **so that** I can jump directly to any named template or match pattern (`showGotoTemplate()` scans active tab with `TMPL_OPEN_PAT`/`ATTR_NAME_PAT`/`ATTR_MATCH_PAT`; presents `ChoiceDialog`; scrolls editor to selected template line). | [x] |
+
+---
+
 ## Progress Summary
 
 | Category | Total | Done | Remaining |
@@ -514,9 +551,12 @@
 | Z2 · Keyboard-First Workflow (XSLT Workbench) | 5 | 5 | 0 |
 | Z3 · Parameter Panel & Auto-Run (XSLT Workbench) | 2 | 2 | 0 |
 | Z4 · File Management & Dirty State (XSLT Workbench) | 3 | 3 | 0 |
+| Z5 · Editor Ergonomics (XSLT Workbench) | 5 | 5 | 0 |
 | Z6 · Debugging Aids (XSLT Workbench) | 4 | 4 | 0 |
-| **TOTAL** | **240** | **237** | **9** |
+| Z7 · XSLT Intelligence (XSLT Workbench) | 3 | 3 | 0 |
+| Z8 · Multi-File Navigation (XSLT Workbench) | 2 | 2 | 0 |
+| **TOTAL** | **260** | **256** | **7** |
 
 ---
 
-_Last updated: 2026-04-13 (Z3 section: F-232 Parameter Panel — collapsible TitledPane with editable Name/Value TableView backed by ObservableList<ParamEntry>, Add/Remove buttons, params collected and passed to executionService.transform at run time; F-236 Auto-Run Toggle — ToggleButton in toolbar, PauseTransition 800 ms debounce on XSLT text changes) — (Z6 section: F-245 to F-248 Debugging Aids — xsl:message teal timestamped rows with live callback, Copy-all-to-clipboard button with timestamp format, clickable line-number rows scrolling XSLT editor, status bar showing element/attribute/text-node counts and elapsed ms) — (Z4 section: F-237 to F-239 File Management & Dirty State — dirty flag with title-bar asterisk, close-request YES/NO/CANCEL guard, Preferences-backed recent-files menus) — (Z1 section: F-224 to F-226 Inline Error Markers — coloured gutter dots, hover tooltips, underline highlighting) — (Z2 section: F-227 to F-231 Keyboard-First Workflow — Ctrl+R run, Ctrl+E validate, Ctrl+S save XSLT, Ctrl+/ comment toggle, Ctrl+D duplicate line) — (Y section: F-214 to F-223 XSL IDE Smart Completion — XSL element/snippet/variable/template completion + XPath Builder dialog) — (X section: F-206 to F-213 XPath Smart Suggestions in XSLT Editor) — U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._
+_Last updated: 2026-04-17 (Z7 section: F-249 output-method detection switching output highlight mode to text/html/xml; F-250 XSLT 3.0 elements in XslKnowledgeBase — try, catch, fork, on-empty, on-non-empty, iterate, next-iteration, break, merge, assert, map, map-entry; F-251 XsltFormatter with Saxon indent=yes, Ctrl+Shift+F accelerator + toolbar button) — (Z5 section: F-240 tag auto-close, F-241 paired quote, F-242 indent/dedent Ctrl+[/], F-243 font size Ctrl+=/-, F-244 matching tag highlight with LRU cache + 80ms debounce) — (Z3 section: F-232 Parameter Panel — collapsible TitledPane with editable Name/Value TableView backed by ObservableList<ParamEntry>, Add/Remove buttons, params collected and passed to executionService.transform at run time; F-236 Auto-Run Toggle — ToggleButton in toolbar, PauseTransition 800 ms debounce on XSLT text changes) — (Z6 section: F-245 to F-248 Debugging Aids — xsl:message teal timestamped rows with live callback, Copy-all-to-clipboard button with timestamp format, clickable line-number rows scrolling XSLT editor, status bar showing element/attribute/text-node counts and elapsed ms) — (Z4 section: F-237 to F-239 File Management & Dirty State — dirty flag with title-bar asterisk, close-request YES/NO/CANCEL guard, Preferences-backed recent-files menus) — (Z1 section: F-224 to F-226 Inline Error Markers — coloured gutter dots, hover tooltips, underline highlighting) — (Z2 section: F-227 to F-231 Keyboard-First Workflow — Ctrl+R run, Ctrl+E validate, Ctrl+S save XSLT, Ctrl+/ comment toggle, Ctrl+D duplicate line) — (Y section: F-214 to F-223 XSL IDE Smart Completion — XSL element/snippet/variable/template completion + XPath Builder dialog) — (X section: F-206 to F-213 XPath Smart Suggestions in XSLT Editor) — U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._
