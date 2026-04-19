@@ -3587,6 +3587,18 @@ public class MainController implements Initializable {
         log.log("XPath Checker opened.");
     }
 
+    // ── Schema Design Workbench ───────────────────────────────────────────────────
+
+    @FXML
+    private void onOpenSchemaDesign() {
+        if (currentModel == null) {
+            showError("No Model", "Open or create a DITA model first.");
+            return;
+        }
+        com.ditadesigner.schema.SchemaDesignModule.openWorkbench(getStage(), currentModel);
+        log.log("Schema Design Workbench opened.");
+    }
+
     // ── XSLT Workbench (XsltModule integration) ─────────────────────────────────
 
     @FXML

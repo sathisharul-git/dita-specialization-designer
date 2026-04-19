@@ -41,6 +41,7 @@
                     <SeparatorMenuItem/>
                     <MenuItem text="Validate Model"          onAction="#onValidateModel"/>
                     <SeparatorMenuItem/>
+                    <MenuItem text="Schema Design Workbench..." onAction="#onOpenSchemaDesign" accelerator="Ctrl+Shift+D"/>
                     <MenuItem text="XSLT Workbench..."       onAction="#onOpenXsltWorkbench" accelerator="Ctrl+Shift+X"/>
                     <MenuItem text="DITA to HTML (XSLT)..."  onAction="#onDitaToHtml"/>
                     <MenuItem text="XPath Checker..."        onAction="#onOpenXPathChecker" accelerator="Ctrl+Shift+P"/>

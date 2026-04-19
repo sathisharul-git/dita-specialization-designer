@@ -518,6 +518,76 @@
 
 ---
 
+## AA1 · Schema Design Workbench — Canvas & Component Nodes
+
+> **Epic:** A separate Stage (like the XSLT Workbench) showing schema components as typed diagram nodes — TopicType boxes, Element rows, Attribute chips — on a zoomable/pannable Pane canvas. Read from the live `DitaModel`; write back through a narrow service interface.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-254 | **As a** DITA architect **I want** a "Schema Design Workbench" window (Tools → Schema Design Workbench, Ctrl+Shift+D) that opens as a non-modal Stage **so that** I can view the structural schema diagram alongside the conceptual canvas. | [x] |
+| F-255 | **As a** DITA architect **I want** each TopicType rendered as a titled header box with a coloured stripe (reusing existing base-type palette) and a scrollable body listing its elements and attributes as rows **so that** the schema structure is immediately recognizable. | [x] |
+| F-256 | **As a** DITA architect **I want** each element row inside a TopicType box to show name, cardinality symbol, and content-model summary **so that** I can read the element structure without expanding a separate panel. | [x] |
+| F-257 | **As a** DITA architect **I want** each attribute row to show name, type, and a required/optional badge (solid dot = required, hollow dot = optional) **so that** constraint status is visible at a glance. | [x] |
+| F-258 | **As a** DITA architect **I want** inheritance arrows between TopicType boxes drawn with thick lines (solid arrowhead) and containment arrows drawn with dashed lines **so that** I can distinguish relationship types without reading labels. | [x] |
+| F-259 | **As a** DITA architect **I want** Ctrl+Mouse Wheel to zoom the schema canvas and middle-mouse-drag (or Space+drag) to pan **so that** I can navigate large schemas comfortably. | [x] |
+| F-260 | **As a** DITA architect **I want** a "Fit All" button that auto-zooms so every component node is visible **so that** I can get an instant overview of the whole schema. | [x] |
+
+---
+
+## AA2 · Schema Design Workbench — Inline Editing
+
+> **Epic:** Double-click any name label or attribute value on a schema node to edit it in-place via a `TextField` overlay; changes write back to the `DitaModel` immediately and trigger a `SchemaModelChangeEvent` so the main canvas refreshes too.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-261 | **As a** DITA architect **I want** to double-click a TopicType name label in the schema diagram to edit the name inline **so that** renaming is a single gesture without opening a dialog. | [x] |
+| F-262 | **As a** DITA architect **I want** to double-click an element name row to open a compact inline editor (name field + cardinality ComboBox) **so that** quick corrections stay in context. | [x] |
+| F-263 | **As a** DITA architect **I want** to double-click an attribute row to open a compact inline editor (name, type, required toggle) **so that** I can fix attribute metadata without switching to the properties panel. | [x] |
+| F-264 | **As a** DITA architect **I want** pressing Enter to commit and Escape to cancel any inline edit **so that** keyboard-driven editing is reliable. | [x] |
+| F-265 | **As a** DITA architect **I want** inline edits to be undoable (Ctrl+Z) through the main undo stack **so that** schema diagram changes are no different from properties-panel changes in terms of reversibility. | [ ] |
+
+---
+
+## AA3 · Schema Design Workbench — Schema Palette & Drag-and-Drop
+
+> **Epic:** A left-side palette of draggable schema component types (TopicType, Element, Attribute). Drag from palette onto canvas to create a new model object at the drop point; drag an existing node to reposition it.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-266 | **As a** DITA architect **I want** a left palette panel listing schema component types (TopicType, Element, Attribute, Domain) with icons **so that** I can discover what I can create by dragging. | [x] |
+| F-267 | **As a** DITA architect **I want** to drag a "TopicType" tile from the palette onto the canvas to create a new `TopicType` at the drop coordinates **so that** I can add components without using the toolbox buttons in the main window. | [x] |
+| F-268 | **As a** DITA architect **I want** to drag an "Element" tile onto an existing TopicType box to add a new `ElementDef` to that topic type **so that** structure authoring is driven by direct manipulation. | [x] |
+| F-269 | **As a** DITA architect **I want** to drag an existing schema node to reposition it on the canvas, with the model's `x`/`y` coordinates updated on mouse release **so that** my layout choices are persisted. | [x] |
+
+---
+
+## AA4 · Schema Design Workbench — Facets & Constraints Panel
+
+> **Epic:** An always-visible right-side panel showing the constraint properties of the currently selected schema component — equivalent to oXygen's Facets View but scoped to DITA-relevant constraints.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-270 | **As a** DITA architect **I want** a "Constraints" panel on the right side of the workbench that updates when I select any node or row **so that** I can edit structural and DITA constraints without opening a dialog. | [x] |
+| F-271 | **As a** DITA architect **I want** the Constraints panel for a selected TopicType to show: name, base type ComboBox, namespace, public ID, system ID, description, and the computed class attribute value (read-only) **so that** all type-level metadata is visible in one place. | [x] |
+| F-272 | **As a** DITA architect **I want** the Constraints panel for a selected element row to show: name, content model field with a "Build..." button, cardinality ComboBox, required toggle, description, and a read-only DTD fragment preview **so that** element authoring has full detail without a dialog. | [x] |
+| F-273 | **As a** DITA architect **I want** the Constraints panel for a selected attribute row to show: name, type ComboBox, default value, required toggle, fixed value, enum values list, specialization base (props/base), and a read-only DTD ATTLIST fragment **so that** attribute authoring is self-contained. | [x] |
+| F-274 | **As a** DITA architect **I want** all changes made in the Constraints panel to write back to the `DitaModel` via `SchemaEditService` and fire a change event **so that** the main canvas and project explorer stay in sync without manual refresh. | [x] |
+
+---
+
+## AA5 · Schema Design Workbench — Outline & Component Navigation
+
+> **Epic:** A tree-based Outline panel and a search bar for jumping to any schema component by name — the equivalent of oXygen's Outline View and Find Component.
+
+| ID | User Story | Done |
+|----|-----------|------|
+| F-275 | **As a** DITA architect **I want** an Outline panel (left, below the palette) listing all TopicTypes and their elements and attributes as a collapsible tree **so that** I can navigate the schema without scrolling the diagram. | [x] |
+| F-276 | **As a** DITA architect **I want** clicking a tree node in the Outline to scroll and select the corresponding diagram node **so that** Outline and diagram are always in sync. | [x] |
+| F-277 | **As a** DITA architect **I want** a "Find Component" search field at the top of the Outline that filters the tree to matching names **so that** I can locate any element or attribute by typing a few characters. | [x] |
+| F-278 | **As a** DITA architect **I want** a "Where Used" tooltip (or small popup) on each element or attribute showing which TopicTypes reference it in their content model **so that** I understand cross-cutting dependencies before renaming or deleting. | [ ] |
+
+---
+
 ## Progress Summary
 
 | Category | Total | Done | Remaining |
@@ -555,8 +625,13 @@
 | Z6 · Debugging Aids (XSLT Workbench) | 4 | 4 | 0 |
 | Z7 · XSLT Intelligence (XSLT Workbench) | 3 | 3 | 0 |
 | Z8 · Multi-File Navigation (XSLT Workbench) | 2 | 2 | 0 |
-| **TOTAL** | **260** | **256** | **7** |
+| AA1 · Schema Design Workbench — Canvas & Component Nodes | 7 | 7 | 0 |
+| AA2 · Schema Design Workbench — Inline Editing | 5 | 4 | 1 |
+| AA3 · Schema Design Workbench — Schema Palette & Drag-and-Drop | 4 | 4 | 0 |
+| AA4 · Schema Design Workbench — Facets & Constraints Panel | 5 | 5 | 0 |
+| AA5 · Schema Design Workbench — Outline & Component Navigation | 4 | 3 | 1 |
+| **TOTAL** | **285** | **279** | **6** |
 
 ---
 
-_Last updated: 2026-04-17 (Z7 section: F-249 output-method detection switching output highlight mode to text/html/xml; F-250 XSLT 3.0 elements in XslKnowledgeBase — try, catch, fork, on-empty, on-non-empty, iterate, next-iteration, break, merge, assert, map, map-entry; F-251 XsltFormatter with Saxon indent=yes, Ctrl+Shift+F accelerator + toolbar button) — (Z5 section: F-240 tag auto-close, F-241 paired quote, F-242 indent/dedent Ctrl+[/], F-243 font size Ctrl+=/-, F-244 matching tag highlight with LRU cache + 80ms debounce) — (Z3 section: F-232 Parameter Panel — collapsible TitledPane with editable Name/Value TableView backed by ObservableList<ParamEntry>, Add/Remove buttons, params collected and passed to executionService.transform at run time; F-236 Auto-Run Toggle — ToggleButton in toolbar, PauseTransition 800 ms debounce on XSLT text changes) — (Z6 section: F-245 to F-248 Debugging Aids — xsl:message teal timestamped rows with live callback, Copy-all-to-clipboard button with timestamp format, clickable line-number rows scrolling XSLT editor, status bar showing element/attribute/text-node counts and elapsed ms) — (Z4 section: F-237 to F-239 File Management & Dirty State — dirty flag with title-bar asterisk, close-request YES/NO/CANCEL guard, Preferences-backed recent-files menus) — (Z1 section: F-224 to F-226 Inline Error Markers — coloured gutter dots, hover tooltips, underline highlighting) — (Z2 section: F-227 to F-231 Keyboard-First Workflow — Ctrl+R run, Ctrl+E validate, Ctrl+S save XSLT, Ctrl+/ comment toggle, Ctrl+D duplicate line) — (Y section: F-214 to F-223 XSL IDE Smart Completion — XSL element/snippet/variable/template completion + XPath Builder dialog) — (X section: F-206 to F-213 XPath Smart Suggestions in XSLT Editor) — U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._
+_Last updated: 2026-04-19 (AA1–AA5 sections: F-254–F-278 Schema Design Workbench — canvas nodes, inline editing, palette drag-and-drop, Facets/Constraints panel, Outline navigation — architecture plan authored, implementation pending) — Previously: 2026-04-17 (Z7 section: F-249 output-method detection switching output highlight mode to text/html/xml; F-250 XSLT 3.0 elements in XslKnowledgeBase — try, catch, fork, on-empty, on-non-empty, iterate, next-iteration, break, merge, assert, map, map-entry; F-251 XsltFormatter with Saxon indent=yes, Ctrl+Shift+F accelerator + toolbar button) — (Z5 section: F-240 tag auto-close, F-241 paired quote, F-242 indent/dedent Ctrl+[/], F-243 font size Ctrl+=/-, F-244 matching tag highlight with LRU cache + 80ms debounce) — (Z3 section: F-232 Parameter Panel — collapsible TitledPane with editable Name/Value TableView backed by ObservableList<ParamEntry>, Add/Remove buttons, params collected and passed to executionService.transform at run time; F-236 Auto-Run Toggle — ToggleButton in toolbar, PauseTransition 800 ms debounce on XSLT text changes) — (Z6 section: F-245 to F-248 Debugging Aids — xsl:message teal timestamped rows with live callback, Copy-all-to-clipboard button with timestamp format, clickable line-number rows scrolling XSLT editor, status bar showing element/attribute/text-node counts and elapsed ms) — (Z4 section: F-237 to F-239 File Management & Dirty State — dirty flag with title-bar asterisk, close-request YES/NO/CANCEL guard, Preferences-backed recent-files menus) — (Z1 section: F-224 to F-226 Inline Error Markers — coloured gutter dots, hover tooltips, underline highlighting) — (Z2 section: F-227 to F-231 Keyboard-First Workflow — Ctrl+R run, Ctrl+E validate, Ctrl+S save XSLT, Ctrl+/ comment toggle, Ctrl+D duplicate line) — (Y section: F-214 to F-223 XSL IDE Smart Completion — XSL element/snippet/variable/template completion + XPath Builder dialog) — (X section: F-206 to F-213 XPath Smart Suggestions in XSLT Editor) — U section: F-188 to F-199 (XSLT Workbench), V section: F-200 to F-202 (Import & Extend), W section: F-203 to F-205 (XPath syntax check + XML pretty print)._
